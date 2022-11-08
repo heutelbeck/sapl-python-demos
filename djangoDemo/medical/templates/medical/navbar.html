@@ -1,0 +1,22 @@
+<a href="/" class="brand-logo" style="margin-left: 1em">SAPL</a>
+
+<ul class="right hide-on-med-and-down">
+    {% if user.is_authenticated %}
+        <li style="font-size: 1.5em; margin-right: 1em">{{ user.username|title }}</li>
+
+
+        <li style="margin-right: 1em"><a href="/logout">Logout</a></li>
+
+    {% else %}
+        <li style="margin-right: 1em"><a href="/login">Login</a></li>
+
+    {% endif %}
+</ul>
+
+{# <a href="#" class="brand-logo">Logo</a>#}
+{#      <a href="#" data-target="mobile-demo" class="sidenav-trigger"><i class="material-icons">menu</i></a>#}
+{#      <ul id="nav-mobile" class="right hide-on-med-and-down">#}
+{#        <li><a href="sass.html">Sass</a></li>#}
+{#        <li><a href="badges.html">Components</a></li>#}
+{#        <li><a href="collapsible.html">JavaScript</a></li>#}
+{#      </ul>#}

@@ -1,0 +1,52 @@
+{% extends 'medical/base.html' %}
+
+
+{% block title %} - Patient List{% endblock %}
+
+{% block content %}
+    {#    {% enforce  action="'patientList.view'" resource="{ 'patients' : { 'id' : patient['id'], 'name' : patient['name'], 'medicalRecordNumber': patient.medicalRecordNumber, 'roomNumber': patient.roomNumber } }" %}#}
+
+    <h3 style="text-align: center">Patient List</h3>
+
+
+    <!-- Content Row -->
+    <div class="row">
+        <!-- Content Column -->
+        <div class="col-lg-12 mb-4">
+            <!-- DataTales Example -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Patient List</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                            <thead>
+                            <tr>
+                                <th scope="col">ID</th>
+                                <th scope="col">Room Nr.</th>
+                                <th scope="col">Name</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for patient in patients %}
+                                <tr>
+                                    <td>{{ patient.id }}</td>
+                                    <td>{{ patient.roomNumber }}</td>
+                                    <td><a href="/patients/{{ patient.id }}">{{ patient.name }}</a></td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <a class="waves-effect waves-light btn-large"
+           style=" margin: auto;text-align: center" href="{% url 'medical:new_patient' %}">add new patient</a>
+    </div>
+
+
+{% endblock %}

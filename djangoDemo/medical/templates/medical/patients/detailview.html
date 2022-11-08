@@ -1,0 +1,109 @@
+{% extends 'medical/base.html' %}
+
+{#{% block content %}#}
+{#    <h3 class="m-8 font-weight-bold text-primary" style="text-align: center">Patient details</h3>#}
+{##}
+{#<div class="card shadow mb-4">#}
+{#                <div class="card-header py-3">#}
+{#                    <h6 class="m-0 font-weight-bold text-primary">{{ patient.name }}</h6>#}
+{#                </div>#}
+{#                <div class="card-body">#}
+{#                    <div class="table-responsive">#}
+{#                        <table class="table table-bordered" id="dataTable" >#}
+{#                            <thead>#}
+{#                            <tr>#}
+{#                                <th scope="col" style="width: 100px"></th>#}
+{#                                <th scope="col">Room Nr.</th>#}
+{#                                <th scope="col">Name</th>#}
+{#                            </tr>#}
+{#                            </thead>#}
+{#                            <tbody>#}
+{#                            {% for patient in patients %}#}
+{#                                <tr>#}
+{#                                    <td>{{ patient.id }}</td>#}
+{#                                    <td>{{ patient.roomNumber }}</td>#}
+{#                                    <td><a href="/patients/{{ patient.id }}">{{ patient.name }}</a></td>#}
+{#                                </tr>#}
+{#                            {% endfor %}#}
+{#                            </tbody>#}
+{#                        </table>#}
+{#                    </div>#}
+{#                </div>#}
+{#            </div>#}
+{#{% endblock %}#}
+
+{% block content %}
+
+    <h3 class="mt-2">Patient: {{ patient.name }}</h3>
+    <hr class="mt-0 mb-4">
+    <!-- Content Row -->
+    <div class="row">
+        <!-- Content Column -->
+        <div class="col-lg-12 mb-4">
+            <!-- DataTales Example -->
+
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">{{ patient.name }}</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                            {% if patient.id %}
+                                <tr>
+                                    <th>Patiend ID:</th>
+                                    <td>{{ patient.id }}</td>
+                                </tr>
+                            {% endif %}
+                            {% if patient.icd11Code %}
+                                <tr>
+                                    <th>ICD11Code:</th>
+                                    <td>{{ patient.icd11Code }}</td>
+                                </tr>
+                            {% endif %}
+                            {% if patient.diagnosisText %}
+                                <tr>
+                                    <th>Diagnosis:</th>
+                                    <td>{{ patient.diagnosisText }}</td>
+                                </tr>
+                            {% endif %}
+                            {% if patient.attendingDoctor %}
+                                <tr>
+                                    <th>Attending Doctor:</th>
+                                    <td>{{ patient.attendingDoctor }}</td>
+                                </tr>
+                            {% endif %}
+                            {% if patient.roomNumber %}
+                                <tr>
+                                    <th>Room:</th>
+                                    <td>{{ patient.roomNumber }}</td>
+                                </tr>
+                            {% endif %}
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <div class="row" style="justify-content: space-around">
+        <a class="waves-effect waves-light btn-large"
+           href="{% url 'medical:update_patient' patient.id %}">Update this
+            Patient</a>
+        <a class="waves-effect waves-light btn-large"
+            href="{% url 'medical:update_patient_diagnose' patient.id %}">Update
+            Diagnose</a>
+        <form action="" method="post">
+        {% csrf_token %}
+        <button type="submit" class="waves-effect waves-light btn-large" >DELETE</button>
+    </form>
+    </div>
+
+
+    {#    <button type="submit" method="post">Delete</button>#}
+    {#    <a href="{% url 'medical:patient' patient.id %}" class="btn btn-danger" method="post">Delete this Patient</a>#}
+
+
+{% endblock %}

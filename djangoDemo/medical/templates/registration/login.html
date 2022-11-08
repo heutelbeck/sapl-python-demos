@@ -1,0 +1,55 @@
+{% extends "medical/base.html" %}
+
+{% block title %} - Login{% endblock %}
+
+{% block content %}
+    <div class="container">
+        {#        <div class="row align-items-start">#}
+        <div class="col">
+            <h3 class="mt-2">Login</h3>
+            <hr class="mt-0 mb-8">
+            <form method="post" class="form-group">
+                {% csrf_token %}
+                {{ form }}
+                <button type="submit" class="btn btn-success">Login</button>
+            </form>
+        </div>
+    </div>
+    <div class="col">
+        <hr class="mt-0 mb-8">
+        <div class="card ">
+            <div class="card-content ">
+                <span class="card-title"> Information</span>
+                <div class="col">
+                    <hr class="mt-0 mb-8">
+                    <p>This demo is based on a fictional healthcare scenario, where doctors, nurses and family access
+                        health
+                        records of patients.</p>
+                    <p>You can access the system as one of the following users (the password is always 'password' if not
+                        is an admin):
+                    <ul>
+                        <li><b>dominic</b>: This user is a visitor and is related to the patient Lenny</li>
+                        <li><b>markus</b>: This user is a visitor and is related to the patient Karl</li>
+                        <li><b>peter</b>: This user is a doctor.</li>
+                        <li><b>alina</b>: This user is a doctor and is related to the patient Karl. She is also the
+                            attending doctor for the patient Karl.
+                        </li>
+                        <li><b>julia</b>: This user is a doctor and is related to the patient Karl. She is also the
+                            attending doctor for the patient Lenny.
+                        </li>
+                        <li><b>horst</b>: This user is a system administrator.The password is host$password</li>
+                        <li><b>brigitte</b>: This user is a nurse.</li>
+                        <li><b>janosch</b>: This user is a nurse and is related to the patient Karl.</li>
+                        <li><b>janina</b>: This user is a nurse. And she is the attending nurse of the patient Karl.
+                        </li>
+                        <li><b>thomas</b>: This user is a nurse. And he is the attending nurse of the patient Lenny.
+                        </li>
+                    </ul>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+{% endblock %}

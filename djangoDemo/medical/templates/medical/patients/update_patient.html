@@ -1,0 +1,49 @@
+{% extends 'medical/base.html' %}
+
+{#{% block content %}#}
+{#    <p>Update Patient</p>#}
+{#{% endblock %}#}
+
+{% block content %}
+    <h3 class="mt-2">Patient: {{ patient.name }}</h3>
+    <hr class="mt-0 mb-4">
+    <!-- Content Row -->
+    <div class="row">
+        <!-- Content Column -->
+        <div class="col-lg-12 mb-4">
+            <!-- DataTales Example -->
+
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">{{ patient.name }}</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                            {% if patient.roomNumber %}
+                                <tr>
+                                    <th>Room:</th>
+                                    <td>{{ patient.roomNumber }}</td>
+                                </tr>
+                            {% endif %}
+                            {% if patient.attendingDoctor %}
+                                <tr>
+                                    <th>Attending Doctor:</th>
+                                    <td>{{ patient.attendingDoctor }}</td>
+                                </tr>
+                            {% endif %}
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <form method="post">
+
+        {% csrf_token %}
+        {{ form }}
+
+        <input type="submit" value="Update" class="btn btn-primary">
+    </form>
+
+{% endblock %}
