@@ -1,0 +1,76 @@
+set "patients_queryset"
+
+deny-unless-permit
+
+//Policies for the Queryset of the Patients model
+
+/*
+Only the attending doctor can delete a patient
+see: PatientQuerySet.delete_patient
+*/
+
+policy "attending doctor can delete his patient"
+permit
+    action.function.class == "PatientQuerySet" &
+    action.function.function_name == "delete_patient" &
+    action.function.type == "Queryset"
+where
+    subject.is_authenticated;
+    "Doctor" in subject.groups;
+    subject.username == resource.function.kwargs.patient.attending_doctor;
+    action.function.type == "Queryset";
+
+/*
+Patients which are related to staff can only be changed by the head nurse
+see: PatienQuerySet.update_patient_general_data
+*/
+
+policy "head nurse can update patients related to staff"
+permit
+    action.function.class == "PatientQuerySet" &
+    action.function.function_name == "update_patient_general_data" &
+    action.function.type == "Queryset"
+where
+    subject.is_authenticated;
+    "Head Nurse" in subject.groups;
+    resource.function.kwargs.patient.is_related_to_staff;
+    action.function.type == "Queryset";
+
+policy "nurse can update general data of a patient"
+permit
+    action.function.class == "PatientQuerySet" &
+    action.function.function_name == "update_patient_general_data" &
+    action.function.type == "Queryset"
+where
+    subject.is_authenticated;
+    "Nurse" in subject.groups;
+    !resource.function.kwargs.patient.is_related_to_staff;
+    action.function.type == "Queryset";
+
+/*
+Change the attending doctor for patients in the first 9 rooms to doctor Julia
+*/
+policy "change attending doctor for room"
+deny
+    action.function.class == "PatientQuerySet" &
+    action.function.function_name == "update_patient_general_data" &
+    action.function.type == "Queryset"
+where
+    resource.function.kwargs.room_number <10;
+    action.function.type == "Queryset";
+obligation
+	"map_room_to_doctor"
+/*
+only the attending doctor can update his patient
+see: PatientQuerySet.update_patient_diagnose
+*/
+
+policy "attending doctor can update patient"
+deny
+    action.function.class == "PatientQuerySet" &
+    action.function.function_name == "update_patient_diagnose" &
+    action.function.type == "Queryset"
+where
+    "Doctor" in subject.groups;
+    subject.username == resource.function.kwargs.patient.attending_doctor;
+    action.function.type == "Queryset";

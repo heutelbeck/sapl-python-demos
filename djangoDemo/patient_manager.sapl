@@ -1,0 +1,160 @@
+set "patients_manager"
+
+deny-unless-permit
+
+//Policies for the ModelManager of the Patient Model
+
+/*
+The list of patients, which will be represented in the view must not contain patients, which are related to the staff,
+or are in one of the first 10 Rooms
+See: PatientManager.auth_user_view_all_patients
+*/
+
+policy "filter patients related to staff"
+permit
+    action.function.class == "PatientManager" &
+    action.function.function_name == "auth_user_view_all_patients" &
+    action.function.type == "Manager"
+where
+    subject.is_authenticated;
+    "Nurse" in subject.groups;
+    !("Head Nurse" in subject.groups);
+    action.function.type == "Manager";
+obligation
+	"filter_patients_related_to_staff"
+
+/*
+The head nurse is allowed to see all patients
+See: PatientManager.auth_user_view_all_patients
+*/
+
+policy "Patients related to staff are visible for the head nurse"
+permit
+    action.function.class == "PatientManager" &
+    action.function.function_name == "auth_user_view_all_patients" &
+    action.function.type == "Manager"
+where
+    subject.is_authenticated;
+    "Head Nurse" in subject.groups;
+    action.function.type == "Manager";
+
+policy "Doctor can only see his own patients"
+permit
+    action.function.class == "PatientManager" &
+    action.function.function_name == "auth_user_view_all_patients" &
+    action.function.type == "Manager"
+where
+    subject.is_authenticated;
+    "Doctor" in subject.groups;
+    action.function.type == "Manager";
+obligation
+    "doctor_can_only_see_his_patients"
+/*
+patient details of patients, which are related to the staff or is in one of the first 10 rooms can only be seen by the
+head nurse and the attending doctor
+see: PatientManager.find_patient_by_pk
+*/
+
+policy "hide patients related to staff"
+permit
+    action.function.class == "PatientManager" &
+    action.function.function_name == "find_patient_by_pk" &
+    action.function.type == "Manager"
+where
+    "Nurse" in subject.groups;
+    resource.return_value.is_related_to_staff == false;
+    resource.return_value.room_number > 10;
+    action.function.type == "Manager";
+
+policy "Head Nurse can see all patients"
+permit
+    action.function.class == "PatientManager" &
+    action.function.function_name == "find_patient_by_pk" &
+    action.function.type == "Manager"
+where
+    "Head Nurse" in subject.groups;
+     action.function.type == "Manager";
+
+policy "hide diagnose of patients related to staff from head nurse"
+permit
+    action.function.class == "PatientManager" &
+    action.function.function_name == "find_patient_by_pk" &
+    action.function.type == "Manager"
+where
+    "Head Nurse" in subject.groups;
+    resource.return_value.is_related_to_staff;
+    action.function.type == "Manager";
+obligation
+	"blacken_diagnose"
+
+
+policy "Doctor can see their patients"
+permit
+    action.function.class == "PatientManager" &
+    action.function.function_name == "find_patient_by_pk" &
+    action.function.type == "Manager"
+where
+    "Doctor" in subject.groups;
+    resource.return_value.attending_doctor == subject.username;
+    action.function.type == "Manager";
+
+
+/*
+only Doctor are allowed to delete patients
+see: PatientManager.delete_patient
+*/
+
+policy "permit doctor to delete patients"
+permit
+    action.function.class == "PatientManager" &
+    action.function.function_name == "delete_patient" &
+    action.function.type == "Manager"
+where
+    "Doctor" in subject.groups;
+    resource.function.kwargs.patient_pk != 1;
+    action.function.type == "Manager";
+
+/*
+only Doctor can change the diagnose of a patient
+see: PatientManager.update_patient_diagnose
+*/
+
+policy "permit doctor to update diagnose"
+permit
+    action.function.class == "PatientManager" &
+    action.function.function_name == "update_patient_diagnose" &
+    action.function.type == "Manager"
+where
+    subject.is_authenticated;
+    "Doctor" in subject.groups;
+    resource.function.kwargs.patient_pk != 1;
+    action.function.type == "Manager";
+/*
+Nurse can change the Room of a patient.
+Only the head nurse can change the attending doctor
+see: PatientManager.update_patient_data
+*/
+
+policy "Nurse can change patients room"
+permit
+    action.function.class == "PatientManager" &
+    action.function.function_name == "update_patient_data" &
+    action.function.type == "Manager"
+where
+    subject.is_authenticated;
+    "Nurse" in subject.groups;
+    !("Intern" in subject.groups);
+    resource.function.kwargs.patient_pk != 1;
+    resource.function.kwargs.attending_doctor == "";
+    action.function.type == "Manager";
+
+policy "Only head nurse can change attending doctor"
+permit
+    action.function.class == "PatientManager" &
+    action.function.function_name == "update_patient_data" &
+    action.function.type == "Manager"
+where
+    subject.is_authenticated;
+    "Head Nurse" in subject.groups;
+    resource.function.kwargs.patient_pk != 1;
+    action.function.type == "Manager";

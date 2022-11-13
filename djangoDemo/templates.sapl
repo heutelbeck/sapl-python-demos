@@ -1,0 +1,9 @@
+/*
+TEMPLATE
+
+policy "Doctors can't add new patients" ( hide Button )
+
+policy "Doctors can't update general patient data" ( Hide Button )
+
+policy "Nurses can't update diagnose patient data and delete patient" ( Hide Buttons )
+*/

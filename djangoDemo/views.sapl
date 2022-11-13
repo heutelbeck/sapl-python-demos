@@ -1,0 +1,130 @@
+set "patients_view"
+
+deny-unless-permit
+
+/*
+admin can do everything
+*/
+
+policy "permit admin"
+permit
+where
+    subject.is_superuser;
+
+
+/*
+Only authenticated users can see the current patients
+*/
+policy "Staff can see Patientlist"
+permit
+    action.request.view_name == "medical:patients" &
+    action.request.method == "GET"
+where
+    subject.is_authenticated;
+    action.function.type == "View";
+
+
+
+//policies which are used for the class PatientDetails to use SAPL for requests with GET and POST
+
+//GET
+
+/*
+Authenticated users can see the details of a patient
+*/
+policy "Staff can see Patientdetails"
+permit
+    action.request.method == "GET" &
+    action.request.view_name == "medical:patient"
+where
+    subject.is_authenticated;
+    action.function.type == "View";
+
+/*
+Users of the group intern are always represented with a dummy patient.
+This is done by a constrainthandlerprovider, which will handle the obligation and changes the argument with which the method will be called
+*/
+
+policy "Interns can only view dummy patient"
+permit
+    action.request.method == "GET" &
+    action.request.view_name == "medical:patient"
+where
+    subject.is_authenticated;
+    "Intern" in subject.groups;
+    resource.function.kwargs.pk != 1;
+    action.function.type == "View";
+obligation
+	"map_patient_details_to_default"
+
+// For interns both policies are combined to a PERMIT with an Obligation
+
+
+//POST
+
+/*
+Only Doctor with permission are allowed to delete patients
+*/
+policy "only Doctor can delete patients"
+permit
+    action.request.method == "POST" &
+    action.request.view_name == "medical:patient"
+where
+    "Doctor" in subject.groups;
+    subject.is_authenticated;
+    "medical.delete_patient" in subject.permissions;
+    action.function.type == "View";
+
+
+//policies which are used for the class NewPatient
+
+//GET
+
+policy "Nurse and interns are allowed to see the view to add new Patients"
+permit
+    action.request.method == "GET" &
+    action.request.view_name == "medical:new_patient"
+where
+    "Nurse" in subject.groups |
+    "Intern"  in subject.groups;
+    action.function.type == "View";
+
+
+//POST
+
+policy "Only Nurse can add new patients"
+permit
+    action.request.method == "POST" &
+    action.request.view_name == "medical:new_patient"
+where
+    "Nurse" in subject.groups;
+    !("Intern"  in subject.groups);
+    action.function.type == "View";
+
+
+//policy which is applied for requests to an endpoint which is handled by the class PatientMedicalData
+
+/*
+The View to update the diagnose of a patient can only be seen by a doctor and only a doctor can update the diagnose with a POST request
+*/
+policy "Only Doctor can update patients diagnose"
+permit
+    action.request.view_name == "medical:update_patient_diagnose"
+where
+    "Doctor" in subject.groups;
+    action.function.type == "View";
+
+//policy which is applied for requests to an endpoint which is handled by the class PatientData
+
+
+
+/*
+The View to update the general data of a patient can only be seen by a nurse and only a nurse can update the diagnose with a POST request
+*/
+
+policy "Only Nurse can update patients data"
+permit
+    action.request.view_name == "medical:update_patient"
+where
+    "Nurse" in subject.groups;
+    action.function.type == "View";
