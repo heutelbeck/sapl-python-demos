@@ -38,19 +38,25 @@ def initialize_database():
 
     # Groups
 
-    assistant_doctor = Group(name="Assistants Doctors")
-    assistant_doctor.save()
-    assistant_doctor.permissions.add(view_patient, change_patient, delete_patient)
+    head_nurse = Group(name="Head Nurse")
+    head_nurse.save()
+    head_nurse.permissions.add(view_patient, change_patient)
 
-    doctor = Group(name="Doctors")
+    doctor = Group(name="Doctor")
     doctor.save()
     doctor.permissions.add(view_patient, change_patient, delete_patient)
 
-    nurse = Group(name="Nurses")
+    nurse = Group(name="Nurse")
     nurse.save()
     nurse.permissions.add(view_patient, change_patient, add_patient)
 
+    intern = Group(name="Intern")
+    intern.save()
+    intern.permissions.add(view_patient)
+
     # Staff
+
+
 
     julia = User(
         username="julia",
@@ -63,6 +69,17 @@ def initialize_database():
     julia.save()
     julia.groups.add(doctor)
 
+    thomas = User(
+        username="thomas",
+        first_name="Thomas",
+        last_name="Thompson",
+        email="thomas@example.com",
+        is_staff=True,
+    )
+    thomas.set_password(DEFAULT_PASSWORD)
+    thomas.save()
+    thomas.groups.add(doctor)
+
     peter = User(
         username="peter",
         first_name="Peter",
@@ -72,7 +89,7 @@ def initialize_database():
     )
     peter.set_password(DEFAULT_PASSWORD)
     peter.save()
-    peter.groups.add(assistant_doctor)
+    peter.groups.add(nurse)
 
     alina = User(
         username="alina",
@@ -84,27 +101,62 @@ def initialize_database():
     alina.set_password(DEFAULT_PASSWORD)
     alina.save()
     alina.groups.add(nurse)
+    alina.groups.add(head_nurse)
+
+    sandra = User(
+        username="sandra",
+        first_name="Sandra",
+        last_name="Simpson",
+        email="sandra@example.com",
+        is_staff=True,
+    )
+
+    sandra.set_password(DEFAULT_PASSWORD)
+    sandra.save()
+    sandra.groups.add(nurse)
+    sandra.groups.add(intern)
 
     User.objects.create_superuser("admin", "admin@example.com", DEFAULT_PASSWORD)
 
     # Patients
 
+    dummy = Patient(
+        name="Dummy Patient",
+        icd11_code="Dummy icd11_code",
+        diagnosis_text="Dummy diagnose",
+        attending_doctor=julia,
+        room_number=99,
+        is_related_to_staff=False
+
+    )
+    dummy.save()
+
     lenny = Patient(
         name="Lenny Lankowsky",
-        icd11Code="DA63.Z/ME24.90",
-        diagnosisText="Duodenal ulcer with acute haemorrhage.",
-        attendingDoctor=julia,
-        roomNumber=11,
+        icd11_code="DA63.Z/ME24.90",
+        diagnosis_text="Duodenal ulcer with acute haemorrhage.",
+        attending_doctor=julia,
+        room_number=11,
         is_related_to_staff=False
     )
     lenny.save()
 
     karl = Patient(
         name="Karl Kartoffel",
-        icd11Code="9B71.0Z/5A11",
-        diagnosisText="Type 2 diabetes mellitus",
-        attendingDoctor=peter,
-        roomNumber=33,
+        icd11_code="9B71.0Z/5A11",
+        diagnosis_text="Type 2 diabetes mellitus",
+        attending_doctor=thomas,
+        room_number=33,
         is_related_to_staff=False
     )
     karl.save()
+
+    kim = Patient(
+        name="Kim Thompson",
+        icd11_code="19Z",
+        diagnosis_text="broken leg",
+        attending_doctor=julia,
+        room_number=9,
+        is_related_to_staff=True,
+    )
+    kim.save()
