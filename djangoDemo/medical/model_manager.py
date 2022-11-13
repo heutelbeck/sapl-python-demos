@@ -3,6 +3,7 @@ from typing import Optional
 from asgiref.sync import sync_to_async
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
+from sapl_base.decorators import pre_enforce, post_enforce
 
 
 class PatientQuerySet(models.QuerySet):
@@ -10,32 +11,42 @@ class PatientQuerySet(models.QuerySet):
     This class provide the query sets for the methods of the Patient-Manager
     """
 
-    async def authUser_view_all_patients(self):
+    async def auth_user_view_all_patients(self):
         """
         This queryset filter a list of all the patients
         """
-        return await sync_to_async(lambda:self.all())()
+        return await sync_to_async(lambda: list(self.all()))()
 
-    async def delete_patient(self, patient_pk: int):
-        patient = await self.aget(pk=patient_pk)
+    async def get_patient_by_pk(self, patient_pk: int):
+        try:
+            return await self.aget(id=patient_pk)
+        except ObjectDoesNotExist:
+            return None
+
+    @pre_enforce
+    async def delete_patient(self, patient):
         return await sync_to_async(lambda: patient.delete())()
 
-    async def update_patient_general_data(self, patient_pk: int, attending_doctor: Optional[str],room_number: Optional[int]
+    @pre_enforce
+    async def update_patient_general_data(self, patient, attending_doctor: Optional[str],
+                                          room_number: Optional[int]
                                           ):
-        patient = await self.aget(pk=patient_pk)
-        if room_number:
-            patient.roomNumber = room_number
-        if attending_doctor:
-            patient.attendingDoctor = attending_doctor
-        return await sync_to_async(lambda: patient.save())()
 
-    async def update_patient_diagnose(self, patient_pk: int, diagnose: Optional[str], icd11: Optional[str]):
-        patient = await self.aget(pk=patient_pk)
+        if room_number:
+            patient.room_number = room_number
+        if attending_doctor:
+            patient.attending_doctor = attending_doctor
+        await sync_to_async(lambda: patient.save())()
+        return patient
+
+    @pre_enforce
+    async def update_patient_diagnose(self, patient, diagnose: Optional[str], icd11: Optional[str]):
         if diagnose:
-            patient.diagnosisText = diagnose
+            patient.diagnosis_text = diagnose
         if icd11:
-            patient.icd11Code = icd11
-        return await sync_to_async(lambda: patient.save())()
+            patient.icd11_code = icd11
+        await sync_to_async(lambda: patient.save())()
+        return patient
 
 
 class PatientManager(models.Manager):
@@ -56,36 +67,42 @@ class PatientManager(models.Manager):
         """
         return PatientQuerySet(self.model, using=self._db)
 
-    async def authUser_view_all_patients(self):
+    @pre_enforce
+    async def auth_user_view_all_patients(self):
+        """
+        check if user is allowed to view all patients
+
+        """
         """
         This methode enable all authenticated users to see the patient list.
         The pre_enforce decorator gives access to the method by the SAPL-Server
         """
         queryset = self.get_queryset()
-        return await queryset.authUser_view_all_patients()
+        return await queryset.auth_user_view_all_patients()
 
+    @post_enforce
     async def find_patient_by_pk(self, patient_pk):
+        """
+        check if user is only allowed to see default patient ( pre_enforce map function arguments)
+        check if user is allowed to see all values of the patient ( post_enforce map certain diagnose for assistant)
+        """
         queryset = self.get_queryset()
-        try:
-            return await queryset.aget(id=patient_pk)
-        except ObjectDoesNotExist:
-            return None
+        return await queryset.get_patient_by_pk(patient_pk)
 
+    @pre_enforce
     async def delete_patient(self, patient_pk: int):
         queryset = self.get_queryset()
-        return await queryset.delete_patient(patient_pk)
+        patient = await queryset.get_patient_by_pk(patient_pk)
+        return await queryset.delete_patient(patient)
 
-    async def update_patient_data(self, patient_pk: int, attenting_doctor: Optional[str], room_number: Optional[int]):
+    @pre_enforce
+    async def update_patient_data(self, patient_pk: int, attending_doctor: Optional[str], room_number: Optional[int]):
         queryset = self.get_queryset()
-        return await queryset.update_patient_general_data(patient_pk, attenting_doctor, room_number)
+        patient = await queryset.get_patient_by_pk(patient_pk)
+        return await queryset.update_patient_general_data(patient, attending_doctor, room_number)
 
+    @pre_enforce
     async def update_patient_diagnose(self, patient_pk: int, diagnose: Optional[str], icd11: Optional[str]):
         queryset = self.get_queryset()
-        return await queryset.update_patient_diagnose(patient_pk, diagnose, icd11)
-
-    # async def save(self, *args, **kwargs):
-    #     """
-    #     This methode save patients.
-    #     The pre_enforce decorator gives access to the method by the SAPL-Server
-    #     """
-    #     super().save(*args, **kwargs)
+        patient = await queryset.get_patient_by_pk(patient_pk)
+        return await queryset.update_patient_diagnose(patient, diagnose, icd11)

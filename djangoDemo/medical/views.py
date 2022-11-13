@@ -4,29 +4,23 @@ from django.contrib import messages
 from django.http import HttpResponseRedirect
 from django.shortcuts import render, redirect
 from django.views import View
-from sapl_base.decorators import pre_enforce
-
 from medical.forms import UpdatePatientData, UpdatePatientDiagnose, NewPatientForm
 from medical.models import Patient
+from sapl_base.decorators import pre_enforce
 
 
 async def index(request):
     """
     Entrypoint to site
     """
+
     user_is_anonym = await sync_to_async(lambda: request.user.is_anonymous)()
     if user_is_anonym:
         return render(request, "medical/home.html")
     return redirect("medical:patients")
 
 
-# def room(request, room_name):
-#
-#     return render(request, "chat/room.html", {"room_name": room_name})
-
-# absichern mit login required
-
-
+@pre_enforce
 async def patients(request):
     """
     This method render the view for the patient-list
@@ -38,17 +32,14 @@ async def patients(request):
     user_is_anonym = await sync_to_async(lambda: request.user.is_anonymous)()
     if user_is_anonym:
         return redirect('medical:index')
-    all_patients = await Patient.objects_patients.authUser_view_all_patients()
-    patient_list = list()
-    async for pat in all_patients:
-        patient_list.append(pat)
-    return render(request, "medical/patients/patient_list.html", {"patients": patient_list})
+    all_patients = await Patient.objects_patients.auth_user_view_all_patients()
 
+    return render(request, "medical/patients/patient_list.html", {"patients": all_patients})
 
-# preenforce
 
 class PatientDetails(View):
 
+    @pre_enforce
     async def get(self, request, pk):
         """
             This method render the view for an patient-record
@@ -64,15 +55,17 @@ class PatientDetails(View):
         if user_is_anonym:
             return redirect('medical:index')
         patient = await Patient.objects_patients.find_patient_by_pk(pk)
+        if patient is None:
+            return render(request, "medical/404.html")
         return render(request, "medical/patients/detailview.html",
                       {"patient": patient})
 
+    @pre_enforce
     async def post(self, request, pk):
         await Patient.objects_patients.delete_patient(pk)
         return redirect("medical:patients")
 
 
-# preenforce
 class NewPatient(View):
     """
     create new patient
@@ -81,6 +74,7 @@ class NewPatient(View):
     :return:
     """
 
+    @pre_enforce
     async def get(self, request):
         user_is_anonym = await sync_to_async(lambda: request.user.is_anonymous)()
         if user_is_anonym:
@@ -88,6 +82,7 @@ class NewPatient(View):
         form = NewPatientForm()
         return render(request, "medical/patients/new_patient.html", {'form': form})
 
+    @pre_enforce
     async def post(self, request):
         user_is_anonym = await sync_to_async(lambda: request.user.is_anonymous)()
         if user_is_anonym:
@@ -105,16 +100,18 @@ class NewPatient(View):
 
 class PatientMedicalData(View):
 
-    # preenforce
+    @pre_enforce
     async def get(self, request, pk):
         user_is_anonym = await sync_to_async(lambda: request.user.is_anonymous)()
         if user_is_anonym:
             return redirect('medical:index')
         form = UpdatePatientDiagnose()
-        patient_object = await Patient.objects_patients.find_patient_by_pk(pk)
-        return render(request, "medical/patients/update_diagnose.html", {'form': form, 'patient': patient_object})
+        patient = await Patient.objects_patients.find_patient_by_pk(pk)
+        if patient is None:
+            return render(request, "medical/404.html")
+        return render(request, "medical/patients/update_diagnose.html", {'form': form, 'patient': patient})
 
-    # postenforce
+    @pre_enforce
     async def post(self, request, pk):
         user_is_anonym = await sync_to_async(lambda: request.user.is_anonymous)()
         if user_is_anonym:
@@ -131,17 +128,19 @@ class PatientMedicalData(View):
 
 class PatientData(View):
 
-    # preenforce
+    @pre_enforce
     async def get(self, request, pk):
         user_is_anonym = await sync_to_async(lambda: request.user.is_anonymous)()
         if user_is_anonym:
             return redirect('medical:index')
         form = UpdatePatientData()
 
-        patient_object = await Patient.objects_patients.find_patient_by_pk(pk)
-        return render(request, "medical/patients/update_patient.html", {'form': form, 'patient': patient_object})
+        patient = await Patient.objects_patients.find_patient_by_pk(pk)
+        if patient is None:
+            return render(request, "medical/404.html")
+        return render(request, "medical/patients/update_patient.html", {'form': form, 'patient': patient})
 
-    # postenforce
+    @pre_enforce
     async def post(self, request, pk):
         user_is_anonym = await sync_to_async(lambda: request.user.is_anonymous)()
         if user_is_anonym:
@@ -156,7 +155,7 @@ class PatientData(View):
         return HttpResponseRedirect(self.request.path_info)
 
 
-async def custom_error_403(request, exception):
+def custom_error_403(request, exception):
     """
     This method render the view for the error 403
 
@@ -168,7 +167,7 @@ async def custom_error_403(request, exception):
     return render(request, "medical/403.html", {})
 
 
-async def custom_error_404(request, exception):
+def custom_error_404(request, exception):
     """
     This method render the view for the error 404
 
