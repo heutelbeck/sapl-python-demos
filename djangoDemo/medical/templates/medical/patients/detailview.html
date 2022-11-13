@@ -1,37 +1,5 @@
 {% extends 'medical/base.html' %}
 
-{#{% block content %}#}
-{#    <h3 class="m-8 font-weight-bold text-primary" style="text-align: center">Patient details</h3>#}
-{##}
-{#<div class="card shadow mb-4">#}
-{#                <div class="card-header py-3">#}
-{#                    <h6 class="m-0 font-weight-bold text-primary">{{ patient.name }}</h6>#}
-{#                </div>#}
-{#                <div class="card-body">#}
-{#                    <div class="table-responsive">#}
-{#                        <table class="table table-bordered" id="dataTable" >#}
-{#                            <thead>#}
-{#                            <tr>#}
-{#                                <th scope="col" style="width: 100px"></th>#}
-{#                                <th scope="col">Room Nr.</th>#}
-{#                                <th scope="col">Name</th>#}
-{#                            </tr>#}
-{#                            </thead>#}
-{#                            <tbody>#}
-{#                            {% for patient in patients %}#}
-{#                                <tr>#}
-{#                                    <td>{{ patient.id }}</td>#}
-{#                                    <td>{{ patient.roomNumber }}</td>#}
-{#                                    <td><a href="/patients/{{ patient.id }}">{{ patient.name }}</a></td>#}
-{#                                </tr>#}
-{#                            {% endfor %}#}
-{#                            </tbody>#}
-{#                        </table>#}
-{#                    </div>#}
-{#                </div>#}
-{#            </div>#}
-{#{% endblock %}#}
-
 {% block content %}
 
     <h3 class="mt-2">Patient: {{ patient.name }}</h3>
@@ -55,28 +23,28 @@
                                     <td>{{ patient.id }}</td>
                                 </tr>
                             {% endif %}
-                            {% if patient.icd11Code %}
+                            {% if patient.icd11_code %}
                                 <tr>
                                     <th>ICD11Code:</th>
-                                    <td>{{ patient.icd11Code }}</td>
+                                    <td>{{ patient.icd11_code }}</td>
                                 </tr>
                             {% endif %}
-                            {% if patient.diagnosisText %}
+                            {% if patient.diagnosis_text %}
                                 <tr>
                                     <th>Diagnosis:</th>
-                                    <td>{{ patient.diagnosisText }}</td>
+                                    <td>{{ patient.diagnosis_text }}</td>
                                 </tr>
                             {% endif %}
-                            {% if patient.attendingDoctor %}
+                            {% if patient.attending_doctor %}
                                 <tr>
                                     <th>Attending Doctor:</th>
-                                    <td>{{ patient.attendingDoctor }}</td>
+                                    <td>{{ patient.attending_doctor }}</td>
                                 </tr>
                             {% endif %}
-                            {% if patient.roomNumber %}
+                            {% if patient.room_number %}
                                 <tr>
                                     <th>Room:</th>
-                                    <td>{{ patient.roomNumber }}</td>
+                                    <td>{{ patient.room_number }}</td>
                                 </tr>
                             {% endif %}
                         </table>

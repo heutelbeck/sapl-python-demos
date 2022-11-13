@@ -1,8 +1,5 @@
 {% extends 'medical/base.html' %}
 
-{#{% block content %}#}
-{#    <p>Update Patient</p>#}
-{#{% endblock %}#}
 
 {% block content %}
     <h3 class="mt-2">Patient: {{ patient.name }}</h3>
@@ -20,16 +17,16 @@
                 <div class="card-body">
                     <div class="table-responsive">
                         <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
-                            {% if patient.roomNumber %}
+                            {% if patient.room_number %}
                                 <tr>
                                     <th>Room:</th>
-                                    <td>{{ patient.roomNumber }}</td>
+                                    <td>{{ patient.room_number }}</td>
                                 </tr>
                             {% endif %}
-                            {% if patient.attendingDoctor %}
+                            {% if patient.attending_doctor %}
                                 <tr>
                                     <th>Attending Doctor:</th>
-                                    <td>{{ patient.attendingDoctor }}</td>
+                                    <td>{{ patient.attending_doctor }}</td>
                                 </tr>
                             {% endif %}
                         </table>
