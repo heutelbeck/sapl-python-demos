@@ -21,9 +21,9 @@ class ChatConfig(AppConfig):
         initialize_database()
 
         from sapl_base.constraint_handling.constraint_handler_service import constraint_handler_service
-        from djangoDemo.medical.constraint_handler_provider.function_arguments_constraint_handler_provider import \
+        from medical.constraint_handler_provider.function_arguments_constraint_handler_provider import \
             MapRoomNumberToDoctor, MapPatientDetailsToDefault
-        from djangoDemo.medical.constraint_handler_provider.result_constraint_handler_provider import BlackenDiagnose, \
+        from medical.constraint_handler_provider.result_constraint_handler_provider import BlackenDiagnose, \
             FilterPatientsRelatedToStaff, DoctorCanSeeOnlyHisPatients
 
         constraint_handler_service.result_handler.append(BlackenDiagnose())

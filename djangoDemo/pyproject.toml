@@ -8,15 +8,16 @@ version = "0.1.0"
 description = "initial version of the demo"
 dependencies = [
     'daphne',
-    'channels',
-    'django',
     'sapl_django',
     'django-crispy-forms',
     'channels_redis',
 ]
 
 [tools.setuptools]
-packages = ["django_settings", "medical"]
+packages = [
+    'demo_settings',
+    'medical'
+]
 
 [tool.sapl.ini_options]
 framework = 'django'
