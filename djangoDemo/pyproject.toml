@@ -10,7 +10,9 @@ dependencies = [
     'daphne',
     'channels',
     'django',
-    'sapl_django'
+    'sapl_django',
+    'django-crispy-forms',
+    'channels_redis',
 ]
 
 [tools.setuptools]
