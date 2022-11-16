@@ -13,7 +13,7 @@ dependencies = [
     'channels_redis',
 ]
 
-[tools.setuptools]
+[tool.setuptools]
 packages = [
     'demo_settings',
     'medical'
