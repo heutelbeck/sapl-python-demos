@@ -122,7 +122,7 @@ where
 The View to update the general data of a patient can only be seen by a nurse and only a nurse can update the diagnose with a POST request
 */
 
-policy "Only Nurse can update patients data"
+policy "Only Nurse can update patients general data"
 permit
     action.request.view_name == "medical:update_patient"
 where

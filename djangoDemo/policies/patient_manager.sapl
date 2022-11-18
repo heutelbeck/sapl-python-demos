@@ -27,7 +27,6 @@ obligation
 The head nurse is allowed to see all patients
 See: PatientManager.auth_user_view_all_patients
 */
-
 policy "Patients related to staff are visible for the head nurse"
 permit
     action.function.class == "PatientManager" &

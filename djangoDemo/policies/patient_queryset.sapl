@@ -36,6 +36,7 @@ where
     resource.function.kwargs.patient.is_related_to_staff;
     action.function.type == "Queryset";
 
+
 policy "nurse can update general data of a patient"
 permit
     action.function.class == "PatientQuerySet" &
@@ -68,7 +69,7 @@ see: PatientQuerySet.update_patient_diagnose
 policy "attending doctor can update patient"
 deny
     action.function.class == "PatientQuerySet" &
-    action.function.function_name == "update_patient_diagnose" &
+    action.function.function_name == "update_patient_medical_data" &
     action.function.type == "Queryset"
 where
     "Doctor" in subject.groups;
