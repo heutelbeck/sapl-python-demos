@@ -10,7 +10,7 @@ class ChatConfig(AppConfig):
     def ready(self):
         """
         The method ready configure if the application or DB first time runs.
-        It initialize the DB and add the demoData and register the constraintService
+        It initializes the DB and add the demoData and register the constraintService
         """
 
         if "runserver" not in sys.argv:
@@ -20,6 +20,9 @@ class ChatConfig(AppConfig):
 
         initialize_database()
 
+        """
+        All ConstraintHandlerProvider are imported after initialization and then added to the ConstraintHandlerService
+        """
         from sapl_base.constraint_handling.constraint_handler_service import constraint_handler_service
         from medical.constraint_handler_provider.function_arguments_constraint_handler_provider import \
             MapRoomNumberToDoctor, MapPatientDetailsToDefault
