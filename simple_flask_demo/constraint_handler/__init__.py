@@ -2,8 +2,6 @@ from sapl_base.constraint_handling.constraint_handler_service import constraint_
 
 from simple_flask_demo.constraint_handler.constraint_handler import ThrowValueErrorOnPermissionDenied
 
-constraint_handler_service.append_error_constraint_handler_provider(ThrowValueErrorOnPermissionDenied())
-
 
 def init_constraint_handler_service():
-    constraint_handler_service.append_error_constraint_handler_provider(ThrowValueErrorOnPermissionDenied())
+    constraint_handler_service.append_error_constraint_handler_provider([ThrowValueErrorOnPermissionDenied()])

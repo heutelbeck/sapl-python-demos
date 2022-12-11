@@ -41,7 +41,7 @@ where
     resource.function.kwargs.data_id < 10;
     resource.return_value != "uneven";
 
-policy "John can request data in the range 0 to 10"
+policy "throw ValueError, when John Requests data outside of permitted range"
 deny
     action.request.blueprint == "views" &
     action.request.method == "POST" &
@@ -50,9 +50,10 @@ deny
 
 where
     subject.name == "John";
-    0 > resource.function.kwargs.data_id;
     resource.function.kwargs.data_id > 10;
     resource.return_value != "uneven";
+obligation
+	"throw_value_error_on_permission_denied"
 
 
 policy "John can receive even numbers"

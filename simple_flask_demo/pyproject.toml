@@ -8,6 +8,12 @@ version = "0.1.0"
 description = "initial version of the demo"
 dependencies = [
     'flask',
-    'sapl_flask'
+    'sapl_flask',
+    'pyJWT'
 ]
 
+[tool.setuptools]
+packages = [
+    'constraint_handler',
+    'sapl_policies'
+]
