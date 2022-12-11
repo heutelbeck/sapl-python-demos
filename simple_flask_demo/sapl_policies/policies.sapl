@@ -1,0 +1,70 @@
+set "flask_example"
+
+deny-unless-permit
+
+policy "Julia can request data with argument > 10"
+permit
+    action.request.blueprint == "views" &
+    action.request.method == "POST" &
+    action.request.endpoint == "views.pre_enforce_sample" |
+    action.request.endpoint == "views.pre_and_post_enforce_sample"
+
+where
+    subject.name == "Julia";
+    resource.function.kwargs.data_id >10;
+    resource.return_value != "even";
+
+
+policy "Julia can receive uneven numbers"
+permit
+    action.request.blueprint == "views" &
+    action.request.method == "POST" &
+    action.request.endpoint == "views.post_enforce_sample" |
+    action.request.endpoint == "views.pre_and_post_enforce_sample"
+
+where
+    subject.name == "Julia";
+    resource.return_value == "uneven";
+
+
+
+policy "John can request data in the range 0 to 10"
+permit
+    action.request.blueprint == "views" &
+    action.request.method == "POST" &
+    action.request.endpoint == "views.pre_enforce_sample" |
+    action.request.endpoint == "views.pre_and_post_enforce_sample"
+
+where
+    subject.name == "John";
+    0 < resource.function.kwargs.data_id;
+    resource.function.kwargs.data_id < 10;
+    resource.return_value != "uneven";
+
+policy "John can request data in the range 0 to 10"
+deny
+    action.request.blueprint == "views" &
+    action.request.method == "POST" &
+    action.request.endpoint == "views.pre_enforce_sample" |
+    action.request.endpoint == "views.pre_and_post_enforce_sample"
+
+where
+    subject.name == "John";
+    0 > resource.function.kwargs.data_id;
+    resource.function.kwargs.data_id > 10;
+    resource.return_value != "uneven";
+
+
+policy "John can receive even numbers"
+permit
+    action.request.blueprint == "views" &
+    action.request.method == "POST" &
+    action.request.endpoint == "views.post_enforce_sample" |
+    action.request.endpoint == "views.pre_and_post_enforce_sample"
+
+where
+    subject.name == "John";
+    resource.return_value == "even";
+
+
+
