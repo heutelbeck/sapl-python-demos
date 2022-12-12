@@ -66,20 +66,3 @@ def pre_and_post_enforce_sample(data_id):
     if random_number % 2 == 1:
         return 'uneven'
     return 'even'
-
-
-# def view_pre_enforce(view: View):
-#     print("x")
-#     return pre_enforce
-#
-#
-# class ListExample(View):
-#     init_every_request = False
-#     decorators = []
-#
-#     def dispatch_request(self) -> ft.ResponseReturnValue:
-#         return str(self.datalist)
-#
-#     def __init__(self, datalist):
-#         self.decorators.append(view_pre_enforce(self))
-#         self.datalist = datalist

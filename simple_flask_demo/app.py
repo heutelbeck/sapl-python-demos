@@ -24,9 +24,5 @@ if __name__ == '__main__':
     app.register_blueprint(views.bp)
     app.register_error_handler(PermissionDenied,error_handler.permission_denied)
     app.register_error_handler(ValueError,error_handler.value_error)
-    # app.add_url_rule(
-    #     "/users/",
-    #     view_func=views.ListExample.as_view("user_list", ["entry_1", "entry_2"]),
-    # )
 
     app.run()
