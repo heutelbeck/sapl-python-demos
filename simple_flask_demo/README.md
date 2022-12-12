@@ -21,6 +21,7 @@ SAPL-Server-lt is running in a docker container on localhost:8080. Different Con
 appropriate variables in the config.json file.
 
 An example for a configuration with the default values could be:
+```JSON
 {
   "POLICY_DECISION_POINT" : {
     "dummy": false,
@@ -30,7 +31,7 @@ An example for a configuration with the default values could be:
     "verify": false
   }
 }
-
+```
 The following list contains customizable variables for the configuration
 
 - "base_url"
