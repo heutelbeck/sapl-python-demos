@@ -24,18 +24,18 @@ sapl_flask.init_sapl(app.config,[jwt_as_subject]) in the app.py file.
 def jwt_as_subject(values: dict):
     """
     A function which is added to the FlaskAuthorizationSubscriptionFactory Singleton on startup.
-    This function retrieves the JWT from the authorization header, if one is present and adds a dict of the decoded token
-    to the subject.
+    This function retrieves the JWT from the authorization header and returns a dict containing the encoded token as
+    "token". The decoding of the token is done by the SAPL PDP Server, but the PDP Server does not validate the JWT
+    token for validity.
     """
+    token_dict = {}
     if not request.headers.get('Authorization'):
-        return {}
+        return token_dict
     try:
         token = get_token(request.headers.get('Authorization'))
-        decoded_token = jwt.decode(token, options={"verify_signature": False}, algorithms="HS256")
-        decoded_token.update({"token": token})
-        return decoded_token
-    except ValueError:
-        return {}
+        token_dict.update({"token": token})
+    finally:
+        return token_dict
 
 
 def get_token(header):

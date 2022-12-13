@@ -2,69 +2,86 @@ set "flask_example"
 
 deny-unless-permit
 
+
+/*
+The user "Julia" is allowed to make a POST request to the endpoints "views.pre_enforce_sample" and
+"views.pre_and_post_enforce_sample" with a value for the parameter "data_id" of > 10.
+*/
 policy "Julia can request data with argument > 10"
 permit
     action.request.blueprint == "views" &
     action.request.method == "POST" &
     action.request.endpoint == "views.pre_enforce_sample" |
     action.request.endpoint == "views.pre_and_post_enforce_sample"
-
 where
-    subject.name == "Julia";
+    "Julia" == jwt.parseJwt(subject.token).payload.name;
     resource.function.kwargs.data_id >10;
-    resource.return_value != "even";
+    resource.return_value == undefined;
 
 
+/*
+The user "Julia" is allowed to receive the return value of a POST request made to the endpoints "views.post_enforce_sample" or
+"views.pre_and_post_enforce_sample" when the return value is uneven.
+*/
 policy "Julia can receive uneven numbers"
 permit
     action.request.blueprint == "views" &
     action.request.method == "POST" &
     action.request.endpoint == "views.post_enforce_sample" |
     action.request.endpoint == "views.pre_and_post_enforce_sample"
-
 where
-    subject.name == "Julia";
+    "Julia" == jwt.parseJwt(subject.token).payload.name;
     resource.return_value == "uneven";
 
 
-
+/*
+The user "John" is allowed to make a POST request to the endpoints "views.pre_enforce_sample" and
+"views.pre_and_post_enforce_sample" when the value of the parameter "data_id" is in the range 0 to 10.
+*/
 policy "John can request data in the range 0 to 10"
 permit
     action.request.blueprint == "views" &
     action.request.method == "POST" &
     action.request.endpoint == "views.pre_enforce_sample" |
     action.request.endpoint == "views.pre_and_post_enforce_sample"
-
 where
-    subject.name == "John";
+    "John" == jwt.parseJwt(subject.token).payload.name;
     0 < resource.function.kwargs.data_id;
     resource.function.kwargs.data_id < 10;
-    resource.return_value != "uneven";
+    resource.return_value == undefined;
 
+
+/*
+When the user "John" makes a POST request to the endpoints "views.pre_enforce_sample" or
+"views.pre_and_post_enforce_sample" with a value of the parameter "data_id" of >10 an obligation is added to the Decison,
+which maps the PermissionDenied Exception to a ValueError Exception.
+*/
 policy "throw ValueError, when John Requests data outside of permitted range"
 deny
     action.request.blueprint == "views" &
     action.request.method == "POST" &
     action.request.endpoint == "views.pre_enforce_sample" |
     action.request.endpoint == "views.pre_and_post_enforce_sample"
-
 where
-    subject.name == "John";
+    "John" == jwt.parseJwt(subject.token).payload.name;
     resource.function.kwargs.data_id > 10;
-    resource.return_value != "uneven";
+    resource.return_value == undefined;
 obligation
 	"throw_value_error_on_permission_denied"
 
 
+/*
+The user "John" is allowed to receive the return value of a POST request made to the endpoints "views.post_enforce_sample" and
+"views.pre_and_post_enforce_sample" when the return value is even.
+*/
 policy "John can receive even numbers"
 permit
     action.request.blueprint == "views" &
     action.request.method == "POST" &
     action.request.endpoint == "views.post_enforce_sample" |
     action.request.endpoint == "views.pre_and_post_enforce_sample"
-
 where
-    subject.name == "John";
+    "John" == jwt.parseJwt(subject.token).payload.name;
     resource.return_value == "even";
 
 
