@@ -1,9 +1,9 @@
 from sapl_base.constraint_handling.constraint_handler_service import constraint_handler_service
 
-import djangoDemo.medical.constraint_handler_provider.function_arguments_constraint_handler_provider as functions
-import djangoDemo.medical.constraint_handler_provider.result_constraint_handler_provider as results
-import djangoDemo.medical.constraint_handler_provider.error_constraint_handler_provider as errors
-import djangoDemo.medical.constraint_handler_provider.on_decision_constraint_handler_provider as on_decisions
+from . import function_arguments_constraint_handler_provider as functions
+from . import result_constraint_handler_provider as results
+from . import error_constraint_handler_provider as errors
+from . import on_decision_constraint_handler_provider as on_decisions
 
 constraint_handler_service.register_result_constraint_handler_provider(
     [results.FilterPatientsRelatedToStaff(), results.BlackenDiagnose(), results.DoctorCanSeeOnlyHisPatients()])

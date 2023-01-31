@@ -18,5 +18,6 @@ class ChatConfig(AppConfig):
             return True
         # import here to avoid AppRegistryNotReady exception
         from medical.demo_data import initialize_database
-
         initialize_database()
+        import djangoDemo.medical.constraint_handler_provider
+
