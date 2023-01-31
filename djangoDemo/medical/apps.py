@@ -1,5 +1,6 @@
 import sys
 
+import django
 from django.apps import AppConfig
 
 
@@ -19,19 +20,3 @@ class ChatConfig(AppConfig):
         from medical.demo_data import initialize_database
 
         initialize_database()
-
-        """
-        All ConstraintHandlerProvider are imported after initialization and then added to the ConstraintHandlerService
-        """
-        from sapl_base.constraint_handling.constraint_handler_service import constraint_handler_service
-        from medical.constraint_handler_provider.function_arguments_constraint_handler_provider import \
-            MapRoomNumberToDoctor, MapPatientDetailsToDefault
-        from medical.constraint_handler_provider.result_constraint_handler_provider import BlackenDiagnose, \
-            FilterPatientsRelatedToStaff, DoctorCanSeeOnlyHisPatients
-
-        constraint_handler_service.result_handler.append(BlackenDiagnose())
-        constraint_handler_service.result_handler.append(FilterPatientsRelatedToStaff())
-        constraint_handler_service.result_handler.append(DoctorCanSeeOnlyHisPatients())
-        constraint_handler_service.function_arguments_mapper.append(MapRoomNumberToDoctor())
-        constraint_handler_service.function_arguments_mapper.append(MapPatientDetailsToDefault())
-

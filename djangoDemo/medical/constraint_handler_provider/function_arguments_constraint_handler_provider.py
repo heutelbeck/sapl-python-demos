@@ -4,7 +4,7 @@ from sapl_base.constraint_handling.constraint_handler_provider import FunctionAr
 class MapPatientDetailsToDefault(FunctionArgumentsConstraintHandlerProvider):
     def handle(self, function_arguments: dict) -> dict:
         """
-        Modify the pk of patient to the value=1, to return only one specific patient independent of the patient which
+        Modify the pk of patient to the value=1, to return only one specific patient, independent of the patient which
         was requested. Interns are allowed to see the page with patient details, but they should only see the details of
         the patient with the pk=1, which is a dummy patient for educational purpose.
 

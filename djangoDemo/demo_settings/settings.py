@@ -38,7 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'crispy_forms',
-    'channels'
+    'channels',
+    'sapl_django'
 ]
 
 MIDDLEWARE = [
@@ -50,7 +51,6 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'sapl_django.sapl_request_middleware.SAPLMiddleware',
-
 
 ]
 
@@ -138,6 +138,17 @@ ASGI_APPLICATION = "demo_settings.asgi.application"
 GRIP_URL = os.environ.get("GRIP_URL")
 
 EVENTSTREAM_STORAGE_CLASS = "django_eventstream.storage.DjangoModelStorage"
+
+POLICY_DECISION_POINT = {
+    "dummy" : False,
+    "base_url": "http://localhost:8080/api/pdp/",
+    "debug": False,
+    "key": "YJidgyT2mfdkbmL",
+    "secret": "Fa4zvYQdiwHZVXh",
+    "verify": False,
+    "backoff_const_max_time": 3,
+    "backoff_expo_max_value": 50
+}
 
 CHANNEL_LAYERS = {
     "default": {

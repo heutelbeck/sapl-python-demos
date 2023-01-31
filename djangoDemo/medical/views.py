@@ -57,7 +57,7 @@ class PatientDetails(View):
 
         :param request: request for the view
         :param pk: id of the patient, which data shall be retrieved from the database.
-            """
+        """
         user_is_anonym = await sync_to_async(lambda: request.user.is_anonymous)()
         if user_is_anonym:
             return redirect('medical:index')
