@@ -1,3 +1,4 @@
+from typing import List
 
 from medical.models import Patient
 from sapl_base.authorization_subscription_factory import client_request
@@ -6,7 +7,7 @@ from sapl_base.constraint_handling.constraint_handler_provider import ResultCons
 
 class FilterPatientsRelatedToStaff(ResultConstraintHandlerProvider):
 
-    def handle(self, result: list[Patient]) -> list[Patient]:
+    def handle(self, result: List[Patient]) -> List[Patient]:
         """
         patients which are related to staff mustn't be returned and are filtered from the list of patients, before
         returning the list
@@ -65,7 +66,7 @@ class BlackenDiagnose(ResultConstraintHandlerProvider):
 
 
 class DoctorCanSeeOnlyHisPatients(ResultConstraintHandlerProvider):
-    def handle(self, result: list[Patient]) -> list[Patient]:
+    def handle(self, result: List[Patient]) -> List[Patient]:
         """
         Doctors are only allowed to see their own patients.
         When the User requesting a list of all patients is of the group "Doctor", the list is filtered. Only those
