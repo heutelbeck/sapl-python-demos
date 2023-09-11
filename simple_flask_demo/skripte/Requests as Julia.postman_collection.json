@@ -1,0 +1,118 @@
+{
+	"info": {
+		"_postman_id": "2e5437ae-1ed4-4d27-bce6-d76ddfb8b9eb",
+		"name": "Requests as Julia",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "pre_enforce example as Julia",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "localhost:5000/pre_enforce/POST/11",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"pre_enforce",
+						"POST",
+						"11"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "pre_enforce example as Julia DENY",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "localhost:5000/pre_enforce/POST/5",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"pre_enforce",
+						"POST",
+						"5"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "post_enforce example as Julia 50% DENY",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "localhost:5000/post_enforce/POST",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"post_enforce",
+						"POST"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "pre_and_post_enforce as Julia 50% DENY",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "localhost:5000/pre_and_post_enforce/POST/11",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"pre_and_post_enforce",
+						"POST",
+						"11"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiSnVsaWEifQ.oRaEyZ_pZeKudooNO5KgSiqwI5UwD5zk-nfCnnuWnlw",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	]
+}

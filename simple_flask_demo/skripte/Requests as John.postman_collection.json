@@ -1,0 +1,118 @@
+{
+	"info": {
+		"_postman_id": "331ac6d9-385a-4302-b014-e8b4a782087d",
+		"name": "Requests as John",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "post_enforce example as John 50% DENY",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "localhost:5000/post_enforce/POST",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"post_enforce",
+						"POST"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "pre_and_post_enforce as John 50% DENY",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "localhost:5000/pre_and_post_enforce/POST/4",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"pre_and_post_enforce",
+						"POST",
+						"4"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "pre_enforce example as John",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "localhost:5000/pre_enforce/POST/5",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"pre_enforce",
+						"POST",
+						"5"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "pre_enforce example as John DENY",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "localhost:5000/pre_enforce/POST/11",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"pre_enforce",
+						"POST",
+						"11"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiSm9obiJ9.V0tldsLafETWh4JaAEig0BA2oqAZcbb9w55tGRLJRHs",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	]
+}
