@@ -19,6 +19,37 @@ async def index(request):
         return render(request, "medical/home.html")
     return redirect("medical:patients")
 
+@pre_enforce(action = "request_websocket")
+async def vital_status(request, pk: int):
+    user_is_anonym = await sync_to_async(lambda: request.user.is_anonymous)()
+    if user_is_anonym:
+        return redirect('medical:index')
+    patient = await Patient.objects_patients.find_patient_by_pk(pk)
+    if patient is None:
+        return render(request, "medical/404.html")
+    return render(request, "medical/patients/vital_status.html",{"patient": patient})
+
+@pre_enforce(action = "request_websocket")
+async def blood_pressure(request, pk: int):
+    user_is_anonym = await sync_to_async(lambda: request.user.is_anonymous)()
+    if user_is_anonym:
+        return redirect('medical:index')
+    patient = await Patient.objects_patients.find_patient_by_pk(pk)
+    if patient is None:
+        return render(request, "medical/404.html")
+    return render(request, "medical/patients/blood_pressure.html",{"patient": patient})
+
+@pre_enforce(action = "request_websocket")
+async def pulse(request, pk: int):
+    user_is_anonym = await sync_to_async(lambda: request.user.is_anonymous)()
+    if user_is_anonym:
+        return redirect('medical:index')
+    patient = await Patient.objects_patients.find_patient_by_pk(pk)
+    if patient is None:
+        return render(request, "medical/404.html")
+    return render(request, "medical/patients/pulse.html",{"patient": patient})
+
+
 
 @pre_enforce
 async def patients(request):
@@ -237,6 +268,8 @@ class PatientData(View):
 
         messages.error(self.request, 'Form is invalid')
         return HttpResponseRedirect(self.request.path_info)
+
+
 
 
 def custom_error_403(request, exception):

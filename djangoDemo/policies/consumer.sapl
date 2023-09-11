@@ -1,0 +1,63 @@
+set "consumer"
+
+deny-unless-permit
+
+policy "Head Nurse can monitor the Vital Status for 50s and 10s forbidden"
+permit
+	action.function.class == "VitalStatusConsumer"
+where
+	<time.toggle((50000),(10000))>;
+	subject.is_authenticated;
+    "Head Nurse" in subject.groups;
+
+
+policy "Doctor can monitor the Vital Status"
+permit
+	action.function.class == "VitalStatusConsumer"
+where
+	subject.is_authenticated;
+    "Doctor" in subject.groups;
+
+policy "Nurse can monitor the pulse for 10 seconds"
+permit
+	action.function.class == "PulseConsumer"
+where
+	<time.toggle((10000),(50000))>;
+	subject.is_authenticated;
+    "Nurse" in subject.groups;
+
+policy "Doctor can monitor the pulse"
+permit
+	action.function.class == "PulseConsumer"
+where
+	subject.is_authenticated;
+    "Doctor" in subject.groups;
+
+policy "Head Nurse can monitor the pulse"
+permit
+	action.function.class == "PulseConsumer"
+where
+	subject.is_authenticated;
+    "Head Nurse" in subject.groups;
+
+policy "Doctor can monitor the blood pressure"
+permit
+	action.function.class == "BloodPressureConsumer"
+where
+	subject.is_authenticated;
+    "Doctor" in subject.groups;
+
+policy "Head Nurse can monitor the blood pressure"
+permit
+	action.function.class == "BloodPressureConsumer"
+where
+	subject.is_authenticated;
+    "Head Nurse" in subject.groups;
+
+policy "Nurse can monitor the blood pressure during their shift"
+permit
+	action.function.class == "BloodPressureConsumer"
+where
+	<time.toggle((30000),(30000))>;
+	subject.is_authenticated;
+    "Nurse" in subject.groups;

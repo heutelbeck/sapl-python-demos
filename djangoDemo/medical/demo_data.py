@@ -59,7 +59,7 @@ def initialize_database():
 
 
     julia = User(
-        username="julia",
+        username="Julia",
         first_name="Julia",
         last_name="August",
         email="julia@example.com",
@@ -70,7 +70,7 @@ def initialize_database():
     julia.groups.add(doctor)
 
     thomas = User(
-        username="thomas",
+        username="Thomas",
         first_name="Thomas",
         last_name="Thompson",
         email="thomas@example.com",
@@ -81,7 +81,7 @@ def initialize_database():
     thomas.groups.add(doctor)
 
     peter = User(
-        username="peter",
+        username="Peter",
         first_name="Peter",
         last_name="Paper",
         email="peter@example.com",
@@ -92,7 +92,7 @@ def initialize_database():
     peter.groups.add(nurse)
 
     alina = User(
-        username="alina",
+        username="Alina",
         first_name="Alina",
         last_name="Aurich",
         email="alina@example.com",
@@ -104,7 +104,7 @@ def initialize_database():
     alina.groups.add(head_nurse)
 
     sandra = User(
-        username="sandra",
+        username="Sandra",
         first_name="Sandra",
         last_name="Simpson",
         email="sandra@example.com",

@@ -1,8 +1,41 @@
 {% extends 'medical/base.html' %}
 
 {% block content %}
+    <script>
+        window.onload = function() {
+            const socket = new WebSocket('ws://localhost:8000/ws/blood_pressure');
 
-    <h3 class="mt-2">Patient: {{ patient.name }}</h3>
+            socket.onopen = function(event) {
+                console.log('WebSocket opened');
+                socket.send('Hello, server!');
+            };
+
+            socket.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                const time = data.time;
+                const bloodPressure1 = data.blood_pressure_1;
+                const bloodPressure2 = data.blood_pressure_2;
+
+                if (data.error) {
+                    alert(data.error)
+                }
+                var pressurefield = document.getElementById("pressure");
+                var timefield = document.getElementById("time");
+                if ((bloodPressure1 > 100 && bloodPressure1 < 160) && (bloodPressure2 > 70 && bloodPressure2 < 95)){
+                    pressurefield.style.color = "green";
+                    pressurefield.style="font-size: 1REM; color: green";
+                }
+                else {
+                    pressurefield.style.color = "red";
+                    pressurefield.style="font-size: 3REM; color: red";
+                }
+
+                pressurefield.innerText = bloodPressure1+"/"+bloodPressure2;
+                timefield.innerText = time;
+            };
+        };
+    </script>
+    <h3 class="mt-2">Blood pressure of {{ patient.name }}</h3>
     <hr class="mt-0 mb-4">
     <!-- Content Row -->
     <div class="row">
@@ -47,38 +80,18 @@
                                     <td>{{ patient.room_number }}</td>
                                 </tr>
                             {% endif %}
+                                <tr>
+                                    <th>Current time:</th>
+                                    <td id="time">unknown</td>
+                                </tr>
+                                <tr>
+                                    <th>Blood pressure:</th>
+                                    <td id="pressure">unknown</td>
+                                </tr>
                         </table>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
-
-
-    <div class="row" style="justify-content: space-around">
-        <a class="waves-effect waves-light btn-large" style="width: 200px"
-           href="{% url 'medical:update_patient' patient.id %}">Update Patient</a>
-        <a class="waves-effect waves-light btn-large" style="width: 200px"
-            href="{% url 'medical:update_patient_diagnose' patient.id %}">Update
-            Diagnose</a>
-        <form action="" method="post">
-        {% csrf_token %}
-        <button type="submit" class="waves-effect waves-light btn-large" style="width: 200px">DELETE</button>
-    </form>
-    </div>
-
-    <div class="row" style="justify-content: space-around">
-        <a class="waves-effect waves-light btn-large" style="width: 200px"
-           href="{% url 'medical:vital_status' patient.id %}">Vitals
-        </a>
-        <a class="waves-effect waves-light btn-large" style="width: 200px"
-            href="{% url 'medical:pulse' patient.id %}">Pulse
-        </a>
-        <a class="waves-effect waves-light btn-large" style="width: 200px"
-            href="{% url 'medical:blood_pressure' patient.id %}">Blood pressure
-        </a>
-    </div>
-
-
 {% endblock %}

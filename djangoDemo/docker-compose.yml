@@ -1,0 +1,21 @@
+version: '3'
+services:
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+
+  sapl-server:
+    image: ghcr.io/heutelbeck/sapl-server-lt:2.1.0-snapshot
+    ports:
+      - "8080:8080"
+    volumes:
+      - .\policies:/pdp/data
+
+  django-app:
+    image: sapl-django-demo:latest
+    depends_on:
+      - redis
+      - sapl-server
+    ports:
+      - "8000:8000"

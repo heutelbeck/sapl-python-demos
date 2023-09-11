@@ -141,7 +141,7 @@ EVENTSTREAM_STORAGE_CLASS = "django_eventstream.storage.DjangoModelStorage"
 
 POLICY_DECISION_POINT = {
     "dummy" : False,
-    "base_url": "http://localhost:8080/api/pdp/",
+    "base_url": "http://sapl-server:8080/api/pdp/",
     "debug": False,
     "key": "YJidgyT2mfdkbmL",
     "secret": "Fa4zvYQdiwHZVXh",
@@ -154,7 +154,7 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [('127.0.0.1', 6379)],
+            "hosts": [('redis', 6379)],
         },
     },
 }

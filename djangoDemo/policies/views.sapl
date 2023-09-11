@@ -128,3 +128,14 @@ permit
 where
     "Nurse" in subject.groups;
     action.function.type == "View";
+
+
+/*
+staff can monitor patients blood pressure, pulse and vital status
+*/
+
+policy "Staff can monitor patient"
+permit
+	action == "request_websocket"
+where
+	subject.is_authenticated;

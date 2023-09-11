@@ -1,8 +1,41 @@
 {% extends 'medical/base.html' %}
 
 {% block content %}
+    <script>
+        window.onload = function() {
+            const socket = new WebSocket('ws://localhost:8000/ws/vital_status');
+            const numberList = document.getElementById('number-list');
 
-    <h3 class="mt-2">Patient: {{ patient.name }}</h3>
+            socket.onopen = function(event) {
+                console.log('WebSocket opened');
+                socket.send('Hello, server!');
+            };
+
+            socket.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                const time = data.time;
+                const status = data.status;
+                if (data.error) {
+                    alert(data.error)
+                }
+                var statusfield = document.getElementById("status");
+                var timefield = document.getElementById("time");
+                if (status === "okay"){
+                    statusfield.style.color = "green";
+                    statusfield.style="font-size: 1REM; color: green";
+                }
+                else {
+                    statusfield.style.color = "red";
+                    statusfield.style="font-size: 3REM; color: red";
+                }
+
+                statusfield.innerText = status;
+                timefield.innerText = time;
+
+            };
+        };
+    </script>
+    <h3 class="mt-2">Vital status : {{ patient.name }}</h3>
     <hr class="mt-0 mb-4">
     <!-- Content Row -->
     <div class="row">
@@ -47,38 +80,18 @@
                                     <td>{{ patient.room_number }}</td>
                                 </tr>
                             {% endif %}
+                                <tr>
+                                    <th>Current time:</th>
+                                    <td id="time">unknown</td>
+                                </tr>
+                                <tr>
+                                    <th>Vital Status:</th>
+                                    <td id="status">unknown</td>
+                                </tr>
                         </table>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
-
-
-    <div class="row" style="justify-content: space-around">
-        <a class="waves-effect waves-light btn-large" style="width: 200px"
-           href="{% url 'medical:update_patient' patient.id %}">Update Patient</a>
-        <a class="waves-effect waves-light btn-large" style="width: 200px"
-            href="{% url 'medical:update_patient_diagnose' patient.id %}">Update
-            Diagnose</a>
-        <form action="" method="post">
-        {% csrf_token %}
-        <button type="submit" class="waves-effect waves-light btn-large" style="width: 200px">DELETE</button>
-    </form>
-    </div>
-
-    <div class="row" style="justify-content: space-around">
-        <a class="waves-effect waves-light btn-large" style="width: 200px"
-           href="{% url 'medical:vital_status' patient.id %}">Vitals
-        </a>
-        <a class="waves-effect waves-light btn-large" style="width: 200px"
-            href="{% url 'medical:pulse' patient.id %}">Pulse
-        </a>
-        <a class="waves-effect waves-light btn-large" style="width: 200px"
-            href="{% url 'medical:blood_pressure' patient.id %}">Blood pressure
-        </a>
-    </div>
-
-
 {% endblock %}
