@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Request credit</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 400px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+            border-radius: 5px;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        table {
+            margin: 10px auto;
+            border-collapse: collapse;
+        }
+
+        table, th, td {
+            border: 1px solid #ccc;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        .button-container {
+            text-align: center;
+        }
+
+        button {
+            background-color: #007bff;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            margin: 10px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .input-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        input[type="number"] {
+            width: 70%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            margin: 10px;
+        }
+
+        .input-text {
+            font-weight: bold;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Request Credit</h1>
+    <table>
+        <tr>
+            <td>Logged in as</td>
+            <td>{{ user.username }}</td>
+        </tr>
+        <tr>
+            <td>Account Owner</td>
+            <td>{{ bankaccount.owner}}</td>
+        </tr>
+        <tr>
+            <td>Balance</td>
+            <td>{{ bankaccount.balance }}</td>
+        </tr>
+        <tr>
+            <td>Max credit</td>
+            <td>{{ bankaccount.credit}}</td>
+        </tr>
+    </table>
+    <div class="input-container">
+        <h2>Request a Credit</h2>
+        <form method="POST">
+            {{ form.hidden_tag() }}
+            <div>
+                <label for="amount">Amount:</label>
+                {{ form.amount(size=20) }}
+            </div>
+            <div>
+                {{ form.submit() }}
+            </div>
+        </form>
+    </div>
+    </div>
+</body>
+</html>

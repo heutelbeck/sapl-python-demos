@@ -1,0 +1,82 @@
+set "flask_example"
+
+deny-unless-permit
+
+/*
+Only Staff can approve credit requests
+*/
+policy "only staff can approve credit requests"
+permit
+    action.request.blueprint == "actions" &
+    action.request.endpoint == "actions.approve_credit"
+where
+    "staff" in subject.groups && subject.userid != resource.function.kwargs.accountid;
+
+
+/*
+Staff can't see credit requests from relatives
+
+policy "Staff can't see relatives credit requests"
+permit
+    actions.function_name.gather_open_request
+where
+    "staff" in subject.groups;
+obligation
+    "filter relatives"
+*/
+
+/*
+You can only grant power of attorney for your own account
+bankid == subject.id
+*/
+
+policy "Only user can grant power of attorney"
+permit
+    action.request.endpoint == "overviews.bankaccount" &
+    action.request.method == "POST"
+where
+    resource.function.kwargs.bankid == subject.userid;
+
+
+/*
+You have to got a power of attorney or be the user to see a bankaccount
+*/
+policy "user or power of attorney can see bankaccount"
+permit
+    action.request.endpoint == "overviews.bankaccount" &
+    action.request.method == "GET"
+where
+    resource.function.kwargs.bankid in subject.vollmachten || resource.function.kwargs.bankid == subject.userid;
+
+/*
+You can see the screen to send money only with power of attorney
+*/
+policy "You can see the screen to send money only with power of attorney"
+permit
+    action.request.endpoint == "action.request_credit"
+where
+    resource.function.kwargs.bankid in subject.vollmachten || resource.function.kwargs.bankid == subject.userid;
+
+policy "approve_credits"
+permit
+    action.function.function_name == "approve_credit"
+where
+    "staff" in subject.groups && subject.userid != resource.function.kwargs.accountid;
+
+policy "request_credit"
+permit
+    action.function.function_name == "request_credit"
+where
+    resource.function.kwargs.bankid in subject.vollmachten || resource.function.kwargs.bankid == subject.userid;
+
+policy "send_money"
+permit
+    actions.function.function_name == "send_money"
+where
+    resource.function.kwargs.bankid in subject.vollmachten || resource.function.kwargs.bankid == subject.userid;
+
+policy "see transaction"
+permit
+    action.request.endpoint == "actions.transaction"
+where
+    resource.function.kwargs.bankid in subject.vollmachten || resource.function.kwargs.bankid == subject.userid;

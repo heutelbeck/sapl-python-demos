@@ -1,0 +1,6 @@
+# from sapl_base.constraint_handling.constraint_handler_service import constraint_handler_service
+#
+# from flask_demo.constrainthandling import constrainthandler
+#
+# constraint_handler_service.register_result_constraint_handler_provider(constrainthandler.FilterRelativesConstraintHandler)
+# constraint_handler_service.register_result_constraint_handler_provider(constrainthandler.LogCreditRequests)
