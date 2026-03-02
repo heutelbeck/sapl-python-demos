@@ -1,2 +1,3 @@
 /.idea
 /djangoDemo/db.sqlite3
+*.iml

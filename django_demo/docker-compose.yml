@@ -1,0 +1,27 @@
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.1
+    command: start-dev --import-realm
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./keycloak:/opt/keycloak/data/import:ro
+
+  sapl-pdp:
+    image: ghcr.io/heutelbeck/sapl-node:4.0.0-SNAPSHOT
+    ports:
+      - "8443:8443"
+    volumes:
+      - ./policies:/pdp/data:ro
+    environment:
+      - SERVER_SSL_ENABLED=false
+      - SERVER_PORT=8443
+      - SERVER_ADDRESS=0.0.0.0
+      - JAVA_TOOL_OPTIONS=-XX:MaxDirectMemorySize=256M
+      - IO_SAPL_NODE_ALLOWNOAUTH=true
+      - IO_SAPL_PDP_EMBEDDED_POLICIESPATH=/pdp/data
+      - IO_SAPL_PDP_EMBEDDED_PRINTTEXTREPORT=true
+    restart: unless-stopped

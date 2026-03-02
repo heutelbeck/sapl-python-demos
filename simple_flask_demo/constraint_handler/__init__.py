@@ -1,6 +1,0 @@
-from sapl_base.constraint_handling.constraint_handler_service import constraint_handler_service
-
-from constraint_handler.constraint_handler import ThrowValueErrorOnPermissionDenied
-
-def init_constraint_handler_service():
-    constraint_handler_service.register_error_constraint_handler_provider([ThrowValueErrorOnPermissionDenied()])

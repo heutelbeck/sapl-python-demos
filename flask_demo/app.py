@@ -1,51 +1,52 @@
-import json
+"""SAPL Flask Demo -- main application entry point.
 
-from flask import Flask
-from flask_login import LoginManager, current_user
-from flask_sqlalchemy import SQLAlchemy
-from werkzeug.exceptions import Unauthorized
+Configures SAPL PEP integration with all 7 constraint handler types
+and includes blueprints for basic and constraint enforcement demos.
+"""
+
+from __future__ import annotations
+
+import atexit
+import os
+
+import structlog
+from dotenv import load_dotenv
+from flask import Flask, jsonify
+
+from sapl_flask.extension import SaplFlask
+
+from handlers import register_all_handlers
+from routes.basic import basic_bp
+from routes.constraints import constraints_bp
+from routes.services import services_bp
+from routes.streaming import streaming_bp
+
+log = structlog.get_logger()
+
+load_dotenv()
 
 app = Flask(__name__)
-login_manager = LoginManager()
-login_manager.init_app(app)
+app.config["SAPL_BASE_URL"] = os.getenv("SAPL_PDP_URL", "http://localhost:8443")
+app.config["SAPL_ALLOW_INSECURE_CONNECTIONS"] = True
+
+sapl = SaplFlask(app)
+register_all_handlers(sapl)
+atexit.register(sapl.close)
+
+app.register_blueprint(basic_bp, url_prefix="/api")
+app.register_blueprint(constraints_bp, url_prefix="/api/constraints")
+app.register_blueprint(streaming_bp, url_prefix="/api/streaming")
+app.register_blueprint(services_bp, url_prefix="/api/services")
+
+log.info("SAPL configured with all constraint handlers registered")
 
 
-def sapl_subject(values: dict):
-    user = current_user
-    if not current_user.is_authenticated:
-        return {"anonymous"}
-    subject = {}
-    subject.update({"name": user.username})
-    subject.update({"userid": str(user.id)})
-    relatives = eval(user.relatives)
-    groups = eval(user.groups)
-    vollmachten = eval(user.vollmachten)
-    subject.update({"relatives": relatives})
-    subject.update({"groups": groups})
-    subject.update({"vollmachten": vollmachten})
-    return subject
+@app.route("/")
+def root():
+    """Health check / root endpoint."""
+    return jsonify({"status": "ok", "application": "SAPL Flask Demo"})
 
 
-if __name__ == '__main__':
-    with app.app_context():
-        app.config.from_file("config.json", load=json.load)
-        import flask_demo.singledb as singledb
-
-        global db
-        singledb.db = SQLAlchemy(app)
-        import flask_demo.models
-
-        import demo_data
-
-        demo_data.create_demo_data()
-
-        import flask_demo.views
-
-        flask_demo.views.register_bp()
-        import sapl_flask
-
-        sapl_flask.init_sapl(app.config, sapl_subject)
-        import sapl_base.policy_enforcement_points.policy_enforcement_point as pep
-
-        pep.permission_denied_exception = Unauthorized
-    app.run(debug=True)
+if __name__ == "__main__":
+    port = int(os.getenv("PORT", "3000"))
+    app.run(host="0.0.0.0", port=port, debug=True)
