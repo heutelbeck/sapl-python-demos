@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run test_demo.sh against all 4 SAPL demos and collect comparative results.
+# Run test_demo.sh against all 5 SAPL demos and collect comparative results.
 #
 # Prerequisites:
 #   - Docker running (Keycloak + SAPL PDP shared across demos)
@@ -59,7 +59,7 @@ printf "${BOLD}  SAPL Demo Comparative Test Suite${NC}\n"
 printf "${BOLD}========================================${NC}\n\n"
 
 # ---- Flask ----
-printf "${BOLD}[1/4] Flask Demo${NC}\n"
+printf "${BOLD}[1/5] Flask Demo${NC}\n"
 kill_port
 cd "$SCRIPT_DIR/flask_demo" && "$VENV/python" app.py > /tmp/flask_demo.log 2>&1 &
 wait_for_server "http://localhost:$PORT/api/hello"
@@ -67,21 +67,28 @@ cd "$SCRIPT_DIR" && bash test_demo.sh "http://localhost:$PORT" --jwt 2>&1 | tee 
 kill_port
 
 # ---- FastAPI ----
-printf "\n${BOLD}[2/4] FastAPI Demo${NC}\n"
+printf "\n${BOLD}[2/5] FastAPI Demo${NC}\n"
 cd "$SCRIPT_DIR/fastapi_demo" && "$VENV/python" -m app.main > /tmp/fastapi_demo.log 2>&1 &
 wait_for_server "http://localhost:$PORT/api/hello"
 cd "$SCRIPT_DIR" && bash test_demo.sh "http://localhost:$PORT" --jwt 2>&1 | tee "$RESULTS_DIR/fastapi.txt"
 kill_port
 
 # ---- Django ----
-printf "\n${BOLD}[3/4] Django Demo${NC}\n"
+printf "\n${BOLD}[3/5] Django Demo${NC}\n"
 cd "$SCRIPT_DIR/django_demo" && "$VENV/uvicorn" demo_project.asgi:application --host 0.0.0.0 --port "$PORT" > /tmp/django_demo.log 2>&1 &
 wait_for_server "http://localhost:$PORT/api/hello"
 cd "$SCRIPT_DIR" && bash test_demo.sh "http://localhost:$PORT" --jwt 2>&1 | tee "$RESULTS_DIR/django.txt"
 kill_port
 
+# ---- Tornado ----
+printf "\n${BOLD}[4/5] Tornado Demo${NC}\n"
+cd "$SCRIPT_DIR/tornado_demo" && "$VENV/python" app.py > /tmp/tornado_demo.log 2>&1 &
+wait_for_server "http://localhost:$PORT/api/hello"
+cd "$SCRIPT_DIR" && bash test_demo.sh "http://localhost:$PORT" --jwt 2>&1 | tee "$RESULTS_DIR/tornado.txt"
+kill_port
+
 # ---- NestJS ----
-printf "\n${BOLD}[4/4] NestJS Demo${NC}\n"
+printf "\n${BOLD}[5/5] NestJS Demo${NC}\n"
 # NestJS needs its own PDP with its policies (missing permit-read-patients, permit-transfer)
 # but the shared PDP has those policies which is fine -- extra policies don't hurt.
 # NestJS uses a different Keycloak client_id.
@@ -97,7 +104,7 @@ printf "${BOLD}========================================${NC}\n\n"
 
 printf "%-12s %s\n" "Demo" "Result"
 printf "%-12s %s\n" "----" "------"
-for demo in flask fastapi django nestjs; do
+for demo in flask fastapi django tornado nestjs; do
     result=$(grep "^Total:" "$RESULTS_DIR/${demo}.txt" 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' || echo "no results")
     printf "%-12s %s\n" "$demo" "$result"
 done
