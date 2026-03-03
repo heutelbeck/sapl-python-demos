@@ -1,6 +1,6 @@
 policy "permit-service-find-patient"
 permit
-  action == "service:findPatient";
+  action == "findPatient";
   resource == "patient";
 obligation
   {

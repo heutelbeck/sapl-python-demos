@@ -1,4 +1,4 @@
 policy "permit-service-list-patients"
 permit
-  action == "service:listPatients";
+  action == "listPatients";
   resource == "patients";

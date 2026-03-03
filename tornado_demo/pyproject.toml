@@ -5,7 +5,7 @@ description = "Tornado demo application for SAPL Python PEP"
 requires-python = ">=3.12"
 dependencies = [
     "tornado>=6.4",
-    "sapl-tornado>=4.0.0rc1",
+    "sapl-tornado>=4.0.0rc2",
     "pyjwt[crypto]>=2.8",
     "httpx>=0.27",
     "python-dotenv>=1.0",

@@ -1,6 +1,6 @@
 policy "permit-service-patient-summary"
 permit
-  action == "service:getPatientSummary";
+  action == "getPatientSummary";
   resource == "patientSummary";
 obligation
   {

@@ -1,6 +1,6 @@
 policy "permit-transfer"
 permit
-  action == "transfer" | action == "service:transfer";
+  action == "transfer";
   resource == "account";
 obligation
   {

@@ -71,17 +71,17 @@ All demos use Keycloak. To obtain a JWT for testing authenticated endpoints:
 
 FastAPI demo:
 ```
-TOKEN=$(curl -s -X POST http://localhost:8080/realms/demo/protocol/openid-connect/token -H "Content-Type: application/x-www-form-urlencoded" -d "grant_type=password&client_id=fastapi-app&client_secret=dev-secret&username=clinician1&password=password" | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+TOKEN=$(curl -s -X POST http://localhost:8080/realms/demo/protocol/openid-connect/token -H "Content-Type: application/x-www-form-urlencoded" -d "grant_type=password&client_id=demo-app&client_secret=dev-secret&username=clinician1&password=password" | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
 ```
 
 Django demo:
 ```
-TOKEN=$(curl -s -X POST http://localhost:8080/realms/demo/protocol/openid-connect/token -H "Content-Type: application/x-www-form-urlencoded" -d "grant_type=password&client_id=django-app&client_secret=dev-secret&username=clinician1&password=password" | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+TOKEN=$(curl -s -X POST http://localhost:8080/realms/demo/protocol/openid-connect/token -H "Content-Type: application/x-www-form-urlencoded" -d "grant_type=password&client_id=demo-app&client_secret=dev-secret&username=clinician1&password=password" | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
 ```
 
 Flask demo:
 ```
-TOKEN=$(curl -s -X POST http://localhost:8080/realms/demo/protocol/openid-connect/token -H "Content-Type: application/x-www-form-urlencoded" -d "grant_type=password&client_id=flask-app&client_secret=dev-secret&username=clinician1&password=password" | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+TOKEN=$(curl -s -X POST http://localhost:8080/realms/demo/protocol/openid-connect/token -H "Content-Type: application/x-www-form-urlencoded" -d "grant_type=password&client_id=demo-app&client_secret=dev-secret&username=clinician1&password=password" | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
 ```
 
 Available test users (password: `password`):

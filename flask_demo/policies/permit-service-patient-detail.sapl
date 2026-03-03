@@ -1,6 +1,6 @@
 policy "permit-service-patient-detail"
 permit
-  action == "service:getPatientDetail";
+  action == "getPatientDetail";
   resource.type == "patientDetail";
 obligation
   {
