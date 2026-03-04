@@ -10,8 +10,6 @@ import json
 
 import tornado.web
 
-from sapl_base.constraint_bundle import AccessDeniedError
-
 from services import patient_service
 
 
@@ -19,12 +17,9 @@ class ServicePatientsHandler(tornado.web.RequestHandler):
     """Delegate to PatientService.list_patients()."""
 
     async def get(self):
-        try:
-            result = await patient_service.list_patients()
-            self.set_header("Content-Type", "application/json; charset=UTF-8")
-            self.write(json.dumps(result))
-        except AccessDeniedError:
-            raise tornado.web.HTTPError(403) from None
+        result = await patient_service.list_patients()
+        self.set_header("Content-Type", "application/json; charset=UTF-8")
+        self.write(json.dumps(result))
 
 
 class ServiceFindPatientHandler(tornado.web.RequestHandler):
@@ -32,12 +27,9 @@ class ServiceFindPatientHandler(tornado.web.RequestHandler):
 
     async def get(self):
         name = self.get_argument("name", "")
-        try:
-            result = await patient_service.find_patient(name)
-            self.set_header("Content-Type", "application/json; charset=UTF-8")
-            self.write(json.dumps(result))
-        except AccessDeniedError:
-            raise tornado.web.HTTPError(403) from None
+        result = await patient_service.find_patient(name)
+        self.set_header("Content-Type", "application/json; charset=UTF-8")
+        self.write(json.dumps(result))
 
 
 class ServiceSearchPatientsHandler(tornado.web.RequestHandler):
@@ -45,40 +37,31 @@ class ServiceSearchPatientsHandler(tornado.web.RequestHandler):
 
     async def get(self):
         query = self.get_argument("q", "")
-        try:
-            result = await patient_service.search_patients(query)
-            self.set_header("Content-Type", "application/json; charset=UTF-8")
-            self.write(json.dumps(result))
-        except AccessDeniedError:
-            raise tornado.web.HTTPError(403) from None
+        result = await patient_service.search_patients(query)
+        self.set_header("Content-Type", "application/json; charset=UTF-8")
+        self.write(json.dumps(result))
 
 
 class ServicePatientDetailHandler(tornado.web.RequestHandler):
     """Delegate to PatientService.get_patient_detail(id)."""
 
     async def get(self, patient_id):
-        try:
-            result = await patient_service.get_patient_detail(patient_id)
-            if result is None:
-                raise tornado.web.HTTPError(404, reason="Patient not found")
-            self.set_header("Content-Type", "application/json; charset=UTF-8")
-            self.write(json.dumps(result))
-        except AccessDeniedError:
-            raise tornado.web.HTTPError(403) from None
+        result = await patient_service.get_patient_detail(patient_id)
+        if result is None:
+            raise tornado.web.HTTPError(404, reason="Patient not found")
+        self.set_header("Content-Type", "application/json; charset=UTF-8")
+        self.write(json.dumps(result))
 
 
 class ServicePatientSummaryHandler(tornado.web.RequestHandler):
     """Delegate to PatientService.get_patient_summary(id)."""
 
     async def get(self, patient_id):
-        try:
-            result = await patient_service.get_patient_summary(patient_id)
-            if result is None:
-                raise tornado.web.HTTPError(404, reason="Patient not found")
-            self.set_header("Content-Type", "application/json; charset=UTF-8")
-            self.write(json.dumps(result))
-        except AccessDeniedError:
-            raise tornado.web.HTTPError(403) from None
+        result = await patient_service.get_patient_summary(patient_id)
+        if result is None:
+            raise tornado.web.HTTPError(404, reason="Patient not found")
+        self.set_header("Content-Type", "application/json; charset=UTF-8")
+        self.write(json.dumps(result))
 
 
 class ServiceTransferHandler(tornado.web.RequestHandler):
@@ -86,12 +69,9 @@ class ServiceTransferHandler(tornado.web.RequestHandler):
 
     async def post(self):
         amount = float(self.get_argument("amount", "10000.0"))
-        try:
-            result = await patient_service.do_transfer(amount)
-            self.set_header("Content-Type", "application/json; charset=UTF-8")
-            self.write(json.dumps(result))
-        except AccessDeniedError:
-            raise tornado.web.HTTPError(403) from None
+        result = await patient_service.do_transfer(amount)
+        self.set_header("Content-Type", "application/json; charset=UTF-8")
+        self.write(json.dumps(result))
 
 
 ServiceHandlers = [

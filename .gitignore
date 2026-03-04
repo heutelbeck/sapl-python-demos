@@ -1,3 +1,5 @@
 /.idea
 /djangoDemo/db.sqlite3
 *.iml
+__pycache__/
+*.pyc

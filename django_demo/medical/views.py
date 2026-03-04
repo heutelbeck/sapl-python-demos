@@ -128,7 +128,8 @@ async def transfer(request: HttpRequest):
         return _json_error(405, "Method not allowed")
     amount = float(request.GET.get("amount", "10000"))
     recipient = request.GET.get("recipient", "default-account")
-    return await _do_transfer(amount=amount, recipient=recipient)
+    result = await _do_transfer(amount=amount, recipient=recipient)
+    return JsonResponse(result)
 
 
 @pre_enforce(action="transfer", resource="account")
