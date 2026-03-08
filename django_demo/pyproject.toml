@@ -5,7 +5,7 @@ description = "Django demo application for SAPL Python PEP"
 requires-python = ">=3.12"
 dependencies = [
     "django>=5.0",
-    "sapl-django>=4.0.0",
+    "sapl-django>=4.0.1",
     "pyjwt[crypto]>=2.8",
     "httpx>=0.27",
     "python-dotenv>=1.0",
