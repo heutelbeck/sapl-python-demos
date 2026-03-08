@@ -19,41 +19,7 @@ Demo applications showing SAPL policy enforcement integrated with Python web fra
 
 ## Quick Start
 
-Each demo is self-contained. To run any demo:
-
-### 1. Start infrastructure
-
-```
-cd fastapi_demo
-docker compose up -d
-```
-
-This starts a SAPL PDP Node on `https://localhost:8443` and a Keycloak instance on `http://localhost:8080`. Wait roughly 30 seconds for Keycloak to finish importing the realm.
-
-### 2. Install dependencies
-
-```
-pip install -e .
-```
-
-### 3. Run the application
-
-FastAPI demo:
-```
-uvicorn app.main:app --host 0.0.0.0 --port 3000 --reload
-```
-
-Django demo:
-```
-uvicorn demo_project.asgi:application --host 0.0.0.0 --port 3000 --reload
-```
-
-Flask demo:
-```
-python app.py
-```
-
-All demos expose their API on `http://localhost:3000`.
+Each demo is self-contained with its own README, Docker Compose file, and run instructions. Pick a demo from the table above and follow the README in its directory.
 
 ## Architecture
 

@@ -4,7 +4,7 @@ version = "1.0.0"
 description = "FastMCP demo application for SAPL Python PEP"
 requires-python = ">=3.12"
 dependencies = [
-    "fastmcp>=2.0",
+    "fastmcp>=3.1.0",
     "sapl-fastmcp>=4.0.1",
     "sapl-base>=4.0.1",
     "mcp>=1.0",
