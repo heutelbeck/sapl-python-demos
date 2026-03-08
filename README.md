@@ -9,6 +9,7 @@ Demo applications showing SAPL policy enforcement integrated with Python web fra
 | [fastapi_demo](fastapi_demo/) | FastAPI | Full-featured demo with JWT, SSE streaming, content filtering, and all constraint handler types |
 | [django_demo](django_demo/) | Django 5 | Medical records domain with JWT, async views, and streaming |
 | [flask_demo](flask_demo/) | Flask | Minimal integration example with pre/post enforce and constraint handlers |
+| [fastmcp_demo](fastmcp_demo/) | FastMCP (MCP) | SAPL middleware and per-component auth for MCP tools, resources, and prompts |
 
 ## Prerequisites
 

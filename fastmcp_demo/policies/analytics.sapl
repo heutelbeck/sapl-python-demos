@@ -1,0 +1,171 @@
+set "analytics"
+
+first or abstain
+
+/*
+ * Obligation demo: method invocation (limitResults)
+ *
+ * Analyst queries customer data with limit=100, but the policy caps it to 5.
+ * The LimitResultsProvider modifies the 'limit' kwarg before the tool executes.
+ */
+policy "analyst-customer-queries"
+permit
+    resource.name == "query_customer_data";
+    "ANALYST" in subject.realm_access.roles;
+    resource.segment != null;
+obligation
+{
+    "type": "limitResults",
+    "maxLimit": 5
+}
+obligation
+{
+    "type": "logAccess",
+    "message": "Customer PII query (result limit enforced)",
+    "subject": subject.preferred_username,
+    "action": action
+}
+
+
+/*
+ * Obligation demo: filter predicate (filterByClassification)
+ *
+ * Analyst sees public and internal exports, but confidential ones are removed.
+ * Intern sees only public exports. The FilterByClassificationProvider filters
+ * individual list elements based on their 'classification' field.
+ */
+policy "analyst-export-listing"
+permit
+    resource.name == "list_data_exports";
+    "ANALYST" in subject.realm_access.roles;
+obligation
+{
+    "type": "filterByClassification",
+    "allowedLevels": ["public", "internal"]
+}
+
+policy "intern-export-listing"
+permit
+    resource.name == "list_data_exports";
+    "INTERN" in subject.realm_access.roles;
+obligation
+{
+    "type": "filterByClassification",
+    "allowedLevels": ["public"]
+}
+
+
+/*
+ * Obligation demo: on-decision runnable (logAccess)
+ *
+ * Destructive operations and data exports are logged via the
+ * AccessLoggingProvider before access is granted.
+ */
+policy "compliance-purge"
+permit
+    resource.name == "purge_dataset";
+    "COMPLIANCE" in subject.realm_access.roles;
+obligation
+{
+    "type": "logAccess",
+    "message": "Dataset purge executed (destructive operation)",
+    "subject": subject.preferred_username,
+    "action": action
+}
+
+policy "export-csv-logging"
+permit
+    action == "export_data";
+    "ANALYST" in subject.realm_access.roles | "COMPLIANCE" in subject.realm_access.roles;
+obligation
+{
+    "type": "logAccess",
+    "message": "Data export initiated",
+    "subject": subject.preferred_username,
+    "action": action
+}
+
+
+/*
+ * Public data: all authenticated users.
+ *
+ * Components tagged 'public' are accessible to everyone. This covers
+ * query_public_data, public_summary, and analyze_trends.
+ */
+policy "public-access"
+permit
+    "public" in resource.tags;
+
+
+/*
+ * Export listing: COMPLIANCE and ENGINEER without filter obligations.
+ *
+ * These roles see all exports unfiltered. Must come after the
+ * analyst/intern-specific policies above (first-applicable ordering).
+ */
+policy "export-listing-unrestricted"
+permit
+    resource.name == "list_data_exports";
+    "COMPLIANCE" in subject.realm_access.roles | "ENGINEER" in subject.realm_access.roles;
+
+
+/*
+ * PII data: ANALYST and COMPLIANCE.
+ *
+ * Components tagged 'pii' contain personally identifiable information.
+ * Access is logged as advice (best-effort, does not block on failure).
+ * Covers: customer_segments, customer_segment_field, generate_report,
+ * and query_customer_data/export_csv for COMPLIANCE (analyst paths
+ * are handled by the more specific policies above).
+ */
+policy "pii-access"
+permit
+    "pii" in resource.tags;
+    "ANALYST" in subject.realm_access.roles | "COMPLIANCE" in subject.realm_access.roles;
+advice
+{
+    "type": "logAccess",
+    "message": "PII data accessed",
+    "subject": subject.preferred_username,
+    "action": action
+}
+
+
+/*
+ * Engineering: ENGINEER only.
+ *
+ * Covers run_model, manage_pipelines, model_catalog, and model_details.
+ */
+policy "engineering-access"
+permit
+    "engineering" in resource.tags;
+    "ENGINEER" in subject.realm_access.roles;
+
+
+/*
+ * Compliance tools: COMPLIANCE only.
+ *
+ * Covers audit_log and compliance_review. The purge_dataset tool is
+ * handled by the more specific compliance-purge policy above.
+ */
+policy "compliance-access"
+permit
+    "compliance" in resource.tags;
+    "COMPLIANCE" in subject.realm_access.roles;
+
+
+/*
+ * Default deny: log unauthorized access attempts.
+ *
+ * No matching permit policy means access is denied. The logAccess
+ * obligation records the attempt for audit purposes.
+ */
+policy "default-deny"
+deny
+obligation
+{
+    "type": "logAccess",
+    "message": "Unauthorized access attempt denied",
+    "subject": subject.preferred_username,
+    "action": action
+}

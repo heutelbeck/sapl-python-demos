@@ -1,0 +1,91 @@
+{
+  "realm": "mcp",
+  "enabled": true,
+  "clients": [
+    {
+      "clientId": "mcp-server",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "redirectUris": ["*"]
+    }
+  ],
+  "roles": {
+    "realm": [
+      { "name": "ANALYST", "description": "Marketing analyst -- customer data, exports, reports" },
+      { "name": "ENGINEER", "description": "ML engineer -- models, pipelines, catalogs" },
+      { "name": "COMPLIANCE", "description": "Compliance officer -- audit, purge, reviews" },
+      { "name": "INTERN", "description": "Intern -- public data only" }
+    ]
+  },
+  "users": [
+    {
+      "username": "mara",
+      "enabled": true,
+      "firstName": "Mara",
+      "lastName": "Reyes",
+      "email": "mara.reyes@example.com",
+      "emailVerified": true,
+      "requiredActions": [],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "mara",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["ANALYST"]
+    },
+    {
+      "username": "felix",
+      "enabled": true,
+      "firstName": "Felix",
+      "lastName": "Nguyen",
+      "email": "felix.nguyen@example.com",
+      "emailVerified": true,
+      "requiredActions": [],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "felix",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["ENGINEER"]
+    },
+    {
+      "username": "diana",
+      "enabled": true,
+      "firstName": "Diana",
+      "lastName": "Kovacs",
+      "email": "diana.kovacs@example.com",
+      "emailVerified": true,
+      "requiredActions": [],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "diana",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["COMPLIANCE"]
+    },
+    {
+      "username": "sam",
+      "enabled": true,
+      "firstName": "Sam",
+      "lastName": "Torres",
+      "email": "sam.torres@example.com",
+      "emailVerified": true,
+      "requiredActions": [],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "sam",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["INTERN"]
+    }
+  ]
+}
