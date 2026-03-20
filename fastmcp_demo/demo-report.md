@@ -1,4 +1,4 @@
-# SAPL MCP Demo Report -- 2026-03-08 12:47:25 UTC
+# SAPL MCP Demo Report -- 2026-03-20 19:35:34 UTC
 
 ## Listings
 
@@ -43,9 +43,9 @@
 ### query_customer_data
 | User | Decision | Details |
 |------|----------|---------|
-| mara | PERMIT | segment, total_matches, limit |
+| mara | PERMIT | segment, limit, total_matches |
 | felix | DENY (Unknown tool: 'query_customer_data') | - |
-| diana | PERMIT | segment, total_matches, limit |
+| diana | PERMIT | segment, limit, total_matches |
 | sam | DENY (Unknown tool: 'query_customer_data') | - |
 | anonymous | REJECT (HTTP 401) | - |
 
