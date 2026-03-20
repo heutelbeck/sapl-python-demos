@@ -16,8 +16,7 @@ from fastmcp.server.auth.providers.jwt import JWTVerifier
 from pydantic import Field
 from sapl_base import PdpClient, PdpConfig
 from sapl_base.constraint_engine import ConstraintEnforcementService
-
-from handlers import AccessLoggingProvider, FilterByClassificationProvider, LimitResultsProvider
+from handlers import AccessLoggingProvider, FilterByClassificationProvider, LimitResultsProvider, RedactFieldsProvider
 from sapl_fastmcp.context import SubscriptionContext
 from sapl_fastmcp.decorators import post_enforce, pre_enforce
 from sapl_fastmcp.middleware import SAPLMiddleware
@@ -35,6 +34,7 @@ constraint_service = ConstraintEnforcementService()
 constraint_service.register_runnable(AccessLoggingProvider())
 constraint_service.register_method_invocation(LimitResultsProvider())
 constraint_service.register_filter_predicate(FilterByClassificationProvider())
+constraint_service.register_mapping(RedactFieldsProvider())
 
 auth = JWTVerifier(
     jwks_uri="http://localhost:8080/realms/mcp/protocol/openid-connect/certs",
@@ -116,37 +116,35 @@ def query_customer_data(
     limit: Annotated[int, Field(description="Maximum number of customer records to return")] = 10,
 ) -> dict:
     """Query customer records containing PII."""
-    return {
-        "segment": segment,
-        "total_matches": 2847,
-        "limit": limit,
-        "records": [
-            {
-                "customer_id": "C-10042",
-                "name": "Alice Johnson",
-                "email": "alice.johnson@example.com",
-                "segment": segment,
-                "lifetime_value": 1250.00,
-                "last_purchase": "2025-01-10",
-            },
-            {
-                "customer_id": "C-10078",
-                "name": "Bob Martinez",
-                "email": "bob.martinez@example.com",
-                "segment": segment,
-                "lifetime_value": 890.50,
-                "last_purchase": "2025-01-12",
-            },
-            {
-                "customer_id": "C-10135",
-                "name": "Carol Chen",
-                "email": "carol.chen@example.com",
-                "segment": segment,
-                "lifetime_value": 2100.75,
-                "last_purchase": "2025-01-14",
-            },
-        ],
-    }
+    return {"segment": segment, "limit": limit, "total_matches": 2847, "records": [
+        {
+            "customer_id": "C-10042",
+            "name": "Alice Johnson",
+            "email": "alice.johnson@example.com",
+            "card_number": "4532015112830366",
+            "segment": segment,
+            "lifetime_value": 1250.00,
+            "last_purchase": "2025-01-10",
+        },
+        {
+            "customer_id": "C-10078",
+            "name": "Bob Martinez",
+            "email": "bob.martinez@example.com",
+            "card_number": "5425233430109903",
+            "segment": segment,
+            "lifetime_value": 890.50,
+            "last_purchase": "2025-01-12",
+        },
+        {
+            "customer_id": "C-10135",
+            "name": "Carol Chen",
+            "email": "carol.chen@example.com",
+            "card_number": "3782822463100052",
+            "segment": segment,
+            "lifetime_value": 2100.75,
+            "last_purchase": "2025-01-14",
+        },
+    ]}
 
 
 @mcp.tool(

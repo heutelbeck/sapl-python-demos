@@ -2,15 +2,22 @@
 
 Demonstrates SAPL policy enforcement in a Tornado application. Shows all enforcement modes (pre/post, service-layer, streaming), constraint handler types, and JWT-based ABAC with Keycloak.
 
+## Prerequisites
+
+- Python 3.12+
+- Docker (for Keycloak and SAPL Node)
+
 ## Quick Start
 
 ```bash
 docker compose up -d
+python -m venv .venv
+source .venv/bin/activate
 pip install -e .
 python app.py
 ```
 
-The demo runs on http://localhost:3000 and requires the SAPL PDP and Keycloak containers from `docker-compose.yml`.
+This starts **Keycloak** on `http://localhost:8080` and the **SAPL PDP Node** on `http://localhost:8443`. Keycloak takes about 30 seconds to import the realm on first start. Wait until `curl -s http://localhost:8080/realms/demo` returns JSON before running the app. The demo runs on http://localhost:3000.
 
 ## Endpoint Reference
 

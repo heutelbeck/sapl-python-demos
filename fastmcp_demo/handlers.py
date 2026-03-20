@@ -1,10 +1,13 @@
 """Constraint handler providers for SAPL FastMCP demo."""
 
+import copy
 import logging
 from collections.abc import Callable
 from typing import Any
 
 from sapl_base.constraint_types import MethodInvocationContext, Signal
+
+BLACKEN_CHAR = "X"
 
 logger = logging.getLogger("sapl.mcp")
 
@@ -55,6 +58,73 @@ class LimitResultsProvider:
                 return
             if current > max_limit:
                 context.kwargs["limit"] = max_limit
+
+        return handler
+
+
+class RedactFieldsProvider:
+    """Redacts named fields anywhere in the return value.
+
+    Walks dicts and lists recursively. When a dict key matches one of
+    the configured field names, the value is blackened, replaced, or
+    deleted depending on the mode.
+
+    Handles obligations like:
+        {"type": "redactFields", "fields": ["email", "card_number"],
+         "mode": "blacken", "discloseRight": 4}
+
+    Modes:
+        blacken  - replace characters with X, optionally disclose left/right
+        replace  - swap value with a fixed string (default "REDACTED")
+        delete   - remove the key entirely
+    """
+
+    def is_responsible(self, constraint: Any) -> bool:
+        return isinstance(constraint, dict) and constraint.get("type") == "redactFields"
+
+    def get_priority(self) -> int:
+        return 0
+
+    def get_handler(self, constraint: Any) -> Callable[[Any], Any]:
+        fields = set(constraint.get("fields", []))
+        mode = constraint.get("mode", "blacken")
+        replacement = constraint.get("replacement", "REDACTED")
+        disclose_left = int(constraint.get("discloseLeft", 0))
+        disclose_right = int(constraint.get("discloseRight", 0))
+
+        def blacken(value: str) -> str:
+            length = len(value)
+            if disclose_left + disclose_right >= length:
+                return value
+            left = value[:disclose_left]
+            right = value[length - disclose_right:] if disclose_right > 0 else ""
+            middle = BLACKEN_CHAR * (length - disclose_left - disclose_right)
+            return left + middle + right
+
+        def redact_value(value: Any) -> Any:
+            if mode == "blacken" and isinstance(value, str):
+                return blacken(value)
+            if mode == "replace":
+                return replacement
+            return value
+
+        def walk(obj: Any) -> Any:
+            if isinstance(obj, dict):
+                result = {}
+                for key, value in obj.items():
+                    if key in fields:
+                        if mode == "delete":
+                            continue
+                        result[key] = redact_value(value)
+                    else:
+                        result[key] = walk(value)
+                return result
+            if isinstance(obj, list):
+                return [walk(element) for element in obj]
+            return obj
+
+        def handler(value: Any) -> Any:
+            return walk(copy.deepcopy(value))
 
         return handler
 

@@ -22,6 +22,7 @@ services:
       - SERVER_ADDRESS=0.0.0.0
       - JAVA_TOOL_OPTIONS=-XX:MaxDirectMemorySize=256M
       - IO_SAPL_NODE_ALLOWNOAUTH=true
+      - IO_SAPL_PDP_EMBEDDED_PDPCONFIGTYPE=DIRECTORY
       - IO_SAPL_PDP_EMBEDDED_POLICIESPATH=/pdp/data
       - IO_SAPL_PDP_EMBEDDED_PRINTTEXTREPORT=true
     restart: unless-stopped

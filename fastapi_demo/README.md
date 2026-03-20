@@ -2,15 +2,22 @@
 
 Demo application for [`sapl-fastapi`](https://github.com/heutelbeck/sapl-python) showing every feature of the library: basic authorization, content filtering, all seven constraint handler interfaces, resource replacement, advice vs obligations, argument manipulation, and streaming SSE with continuous authorization. All endpoints work with plain `curl` except the export endpoint, which requires a JWT from Keycloak. The source files have comprehensive docstrings -- read the code for the full story.
 
+## Prerequisites
+
+- Python 3.12+
+- Docker (for Keycloak and SAPL Node)
+
 ## Quick Start
 
 ```bash
 docker compose up -d
+python -m venv .venv
+source .venv/bin/activate
 pip install -e .
 uvicorn app.main:app --host 0.0.0.0 --port 3000 --reload
 ```
 
-This starts **Keycloak** on `http://localhost:8080` (admin/admin) with a pre-configured `demo` realm and the **SAPL PDP Node** on `http://localhost:8443` with policies from `./policies/`. Wait about 30 seconds for Keycloak to import the realm.
+This starts **Keycloak** on `http://localhost:8080` (admin/admin) with a pre-configured `demo` realm and the **SAPL PDP Node** on `http://localhost:8443` with policies from `./policies/`. Keycloak takes about 30 seconds to import the realm on first start. Wait until `curl -s http://localhost:8080/realms/demo` returns JSON before running the app.
 
 ## Endpoints
 

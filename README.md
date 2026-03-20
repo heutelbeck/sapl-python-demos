@@ -9,6 +9,7 @@ Demo applications showing SAPL policy enforcement integrated with Python web fra
 | [fastapi_demo](fastapi_demo/) | FastAPI | Full-featured demo with JWT, SSE streaming, content filtering, and all constraint handler types |
 | [django_demo](django_demo/) | Django 5 | Medical records domain with JWT, async views, and streaming |
 | [flask_demo](flask_demo/) | Flask | Minimal integration example with pre/post enforce and constraint handlers |
+| [tornado_demo](tornado_demo/) | Tornado | Async enforcement with pre/post enforce, constraint handlers, and streaming |
 | [fastmcp_demo](fastmcp_demo/) | FastMCP (MCP) | SAPL middleware and per-component auth for MCP tools, resources, and prompts |
 
 ## Prerequisites
@@ -19,7 +20,17 @@ Demo applications showing SAPL policy enforcement integrated with Python web fra
 
 ## Quick Start
 
-Each demo is self-contained with its own README, Docker Compose file, and run instructions. Pick a demo from the table above and follow the README in its directory.
+Each demo is self-contained. The general pattern:
+
+```bash
+cd <demo_directory>
+docker compose up -d
+python -m venv .venv
+source .venv/bin/activate
+pip install -e .
+```
+
+Keycloak takes about 30 seconds to import the realm on first start. Wait until `curl -s http://localhost:8080/realms/demo` returns JSON before running the app. See each demo's README for the specific run command.
 
 ## Architecture
 

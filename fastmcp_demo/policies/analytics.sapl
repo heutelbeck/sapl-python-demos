@@ -3,10 +3,12 @@ set "analytics"
 first or abstain
 
 /*
- * Obligation demo: method invocation (limitResults)
+ * Obligation demo: method invocation (limitResults) + field redaction
  *
  * Analyst queries customer data with limit=100, but the policy caps it to 5.
  * The LimitResultsProvider modifies the 'limit' kwarg before the tool executes.
+ * Email addresses and card numbers are blackened (last 4 chars visible) by
+ * the RedactFieldsProvider, which walks the return value recursively.
  */
 policy "analyst-customer-queries"
 permit
@@ -20,8 +22,15 @@ obligation
 }
 obligation
 {
+    "type": "redactFields",
+    "fields": ["email", "card_number"],
+    "mode": "blacken",
+    "discloseRight": 4
+}
+obligation
+{
     "type": "logAccess",
-    "message": "Customer PII query (result limit enforced)",
+    "message": "Customer PII query (limit enforced, PII redacted)",
     "subject": subject.preferred_username,
     "action": action
 }

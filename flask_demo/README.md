@@ -4,15 +4,22 @@ Demo application for [`sapl-flask`](https://github.com/heutelbeck/sapl-python) s
 
 URL structure follows the [NestJS reference demo](https://github.com/heutelbeck/sapl-nestjs-demo). Content filtering is demonstrated under `/api/constraints/` (not as a separate router) since the NestJS demo combines them there.
 
+## Prerequisites
+
+- Python 3.12+
+- Docker (for Keycloak and SAPL Node)
+
 ## Quick Start
 
 ```bash
 docker compose up -d
+python -m venv .venv
+source .venv/bin/activate
 pip install -e .
 python app.py
 ```
 
-This starts **Keycloak** on `http://localhost:8080` (admin/admin) with a pre-configured `demo` realm and the **SAPL PDP Node** on `http://localhost:8443` with policies from `./policies/`. Wait about 30 seconds for Keycloak to import the realm.
+This starts **Keycloak** on `http://localhost:8080` (admin/admin) with a pre-configured `demo` realm and the **SAPL PDP Node** on `http://localhost:8443` with policies from `./policies/`. Keycloak takes about 30 seconds to import the realm on first start. Wait until `curl -s http://localhost:8080/realms/demo` returns JSON before running the app.
 
 ## Endpoints
 

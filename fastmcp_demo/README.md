@@ -2,14 +2,21 @@
 
 Demo applications for [`sapl-fastmcp`](https://github.com/heutelbeck/sapl-python) showing two authorization approaches for MCP servers: global SAPL middleware and per-component `auth=sapl()`. Both approaches use Keycloak for JWT authentication and a SAPL PDP for policy-based access control.
 
+## Prerequisites
+
+- Python 3.12+
+- Docker (for Keycloak and SAPL Node)
+
 ## Quick Start
 
 ```bash
 docker compose up -d
+python -m venv .venv
+source .venv/bin/activate
 pip install -e .
 ```
 
-This starts **Keycloak** on `http://localhost:8080` (admin/admin) with a pre-configured `mcp` realm and the **SAPL PDP Node** on `http://localhost:8443` with policies from `./policies/`. Wait about 30 seconds for Keycloak to import the realm.
+This starts **Keycloak** on `http://localhost:8080` (admin/admin) with a pre-configured `mcp` realm and the **SAPL PDP Node** on `http://localhost:8443` with policies from `./policies/`. Keycloak takes about 30 seconds to import the realm on first start. Wait until `curl -s http://localhost:8080/realms/mcp` returns JSON before running the servers.
 
 ### Middleware Server (port 8001)
 
@@ -66,7 +73,7 @@ All passwords match the username. Configured in `keycloak/mcp-realm.json`.
 
 | Username | Role       | Access                                              |
 |----------|------------|-----------------------------------------------------|
-| mara     | ANALYST    | Customer data, exports, reports (PII with logging)  |
+| mara     | ANALYST    | Customer data (redacted PII, capped limit), exports, reports |
 | felix    | ENGINEER   | ML models, pipelines, catalogs                      |
 | diana    | COMPLIANCE | Audit logs, purge operations, compliance reviews    |
 | sam      | INTERN     | Public data only                                    |
@@ -76,6 +83,13 @@ All passwords match the username. Configured in `keycloak/mcp-realm.json`.
 ### Middleware (`middleware_server.py`)
 
 The `SAPLMiddleware` intercepts every MCP operation. The default subscription uses the caller's JWT claims as subject, the operation verb as action, and the component name + arguments as resource. Decorators like `@pre_enforce(action="export_data", stealth=True)` override specific fields or hide components from listings.
+
+Four constraint handler types are demonstrated:
+
+- **`AccessLoggingProvider`** (on-decision): logs access events on both permit and deny
+- **`LimitResultsProvider`** (method invocation): caps the `limit` argument before the tool runs
+- **`RedactFieldsProvider`** (mapping): blackens sensitive fields (email, card numbers) in the response, walks nested structures recursively
+- **`FilterByClassificationProvider`** (filter predicate): removes list elements by classification level
 
 ### Per-Component Auth (`auth_server.py`)
 
