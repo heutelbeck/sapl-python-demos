@@ -14,8 +14,8 @@ from typing import Annotated
 from fastmcp import FastMCP
 from fastmcp.server.auth.providers.jwt import JWTVerifier
 from pydantic import Field
-from sapl_base import PdpClient, PdpConfig
-from sapl_base.constraint_engine import ConstraintEnforcementService
+from sapl_base.pep import EnforcementPlanner
+from sapl_base.transport import HttpPdpClient, HttpPdpClientOptions
 from handlers import AccessLoggingProvider, FilterByClassificationProvider, LimitResultsProvider, RedactFieldsProvider
 from sapl_fastmcp.context import SubscriptionContext
 from sapl_fastmcp.decorators import post_enforce, pre_enforce
@@ -25,16 +25,14 @@ logging.basicConfig(level=logging.INFO)
 logging.getLogger("sapl.mcp.middleware").setLevel(logging.DEBUG)
 logger = logging.getLogger("sapl.mcp.analytics")
 
-pdp = PdpClient(PdpConfig(
-    base_url="http://localhost:8443",
-    allow_insecure_connections=True,
-))
+pdp = HttpPdpClient(HttpPdpClientOptions(base_url="http://localhost:8443"))
 
-constraint_service = ConstraintEnforcementService()
-constraint_service.register_runnable(AccessLoggingProvider())
-constraint_service.register_method_invocation(LimitResultsProvider())
-constraint_service.register_filter_predicate(FilterByClassificationProvider())
-constraint_service.register_mapping(RedactFieldsProvider())
+planner = EnforcementPlanner(providers=(
+    AccessLoggingProvider(),
+    LimitResultsProvider(),
+    FilterByClassificationProvider(),
+    RedactFieldsProvider(),
+))
 
 auth = JWTVerifier(
     jwks_uri="http://localhost:8080/realms/mcp/protocol/openid-connect/certs",
@@ -50,7 +48,7 @@ mcp = FastMCP(
         "Use tools to query data and perform actions, resources to browse "
         "available datasets and metadata, and prompts to generate analyses."
     ),
-    middleware=[SAPLMiddleware(pdp, constraint_service)],
+    middleware=[SAPLMiddleware(pdp, planner)],
 )
 
 

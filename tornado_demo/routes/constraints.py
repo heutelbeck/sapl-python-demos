@@ -1,11 +1,11 @@
 """Constraint handler demo endpoints.
 
 Each endpoint is protected by a SAPL policy that attaches obligations or advice.
-The ConstraintEnforcementService discovers registered handlers and builds a
-ConstraintHandlerBundle that enforces all constraints.
+Registered providers expose `ScopedHandler` triples (signal, shape, priority)
+that the EnforcementPlanner schedules into a per-decision plan.
 
-Demonstrates all 7 constraint handler types plus content filtering, resource
-replacement, and the obligation vs advice distinction.
+Demonstrates DECISION runners, INPUT/OUTPUT/ERROR mappers and consumers, plus
+content filtering, resource replacement, and the obligation vs advice distinction.
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ log = structlog.get_logger()
 
 
 class LoggedHandler(tornado.web.RequestHandler):
-    """RunnableConstraintHandlerProvider -- LogAccessHandler."""
+    """DECISION runner -- LogAccessHandler."""
 
     @pre_enforce(action="readLogged", resource="logged")
     async def get(self):
@@ -35,7 +35,7 @@ class LoggedHandler(tornado.web.RequestHandler):
 
 
 class AuditedHandler(tornado.web.RequestHandler):
-    """ConsumerConstraintHandlerProvider -- AuditTrailHandler."""
+    """OUTPUT consumer -- AuditTrailHandler."""
 
     @pre_enforce(action="readAudited", resource="audited")
     async def get(self):
@@ -56,7 +56,7 @@ class AuditLogHandler(tornado.web.RequestHandler):
 
 
 class RedactedHandler(tornado.web.RequestHandler):
-    """MappingConstraintHandlerProvider -- RedactFieldsHandler."""
+    """OUTPUT mapper -- RedactFieldsHandler."""
 
     @pre_enforce(action="readRedacted", resource="redacted")
     async def get(self):
@@ -97,7 +97,7 @@ class PatientFullHandler(tornado.web.RequestHandler):
 
 
 class DocumentsHandler(tornado.web.RequestHandler):
-    """FilterPredicateConstraintHandlerProvider -- ClassificationFilterHandler."""
+    """OUTPUT mapper using DROP sentinel -- ClassificationFilterHandler."""
 
     @pre_enforce(action="readDocuments", resource="documents")
     async def get(self):
@@ -105,7 +105,7 @@ class DocumentsHandler(tornado.web.RequestHandler):
 
 
 class TimestampedHandler(tornado.web.RequestHandler):
-    """MethodInvocationConstraintHandlerProvider -- InjectTimestampHandler."""
+    """INPUT mapper -- InjectTimestampHandler injects policy timestamp into kwargs."""
 
     @pre_enforce(action="readTimestamped", resource="timestamped")
     async def get(self, policy_timestamp="not injected"):
@@ -117,7 +117,7 @@ class TimestampedHandler(tornado.web.RequestHandler):
 
 
 class ErrorDemoHandler(tornado.web.RequestHandler):
-    """ErrorHandlerProvider + ErrorMappingConstraintHandlerProvider."""
+    """ERROR consumer + ERROR mapper."""
 
     @pre_enforce(action="readErrorDemo", resource="errorDemo")
     async def get(self):

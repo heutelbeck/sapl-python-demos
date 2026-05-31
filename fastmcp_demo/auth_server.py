@@ -12,17 +12,14 @@ from typing import Annotated
 from fastmcp import FastMCP
 from fastmcp.server.auth.providers.jwt import JWTVerifier
 from pydantic import Field
-from sapl_base import PdpConfig
+from sapl_base.transport import HttpPdpClientOptions
 from handlers import AccessLoggingProvider
-from sapl_fastmcp import configure_sapl, get_constraint_service, sapl
+from sapl_fastmcp import configure_sapl, register_provider, sapl
 
 logging.basicConfig(level=logging.INFO)
 
-configure_sapl(PdpConfig(
-    base_url="http://localhost:8443",
-    allow_insecure_connections=True,
-))
-get_constraint_service().register_runnable(AccessLoggingProvider())
+register_provider(AccessLoggingProvider())
+configure_sapl(HttpPdpClientOptions(base_url="http://localhost:8443"))
 
 auth = JWTVerifier(
     jwks_uri="http://localhost:8080/realms/mcp/protocol/openid-connect/certs",

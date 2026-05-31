@@ -1,11 +1,11 @@
 """Constraint handler demo endpoints.
 
 Each endpoint is protected by a SAPL policy that attaches obligations or advice.
-The ConstraintEnforcementService discovers registered handlers and builds a
-ConstraintHandlerBundle that enforces all constraints.
+Registered providers expose `ScopedHandler` triples (signal, shape, priority)
+that the EnforcementPlanner schedules into a per-decision plan.
 
-Demonstrates all 7 constraint handler types plus content filtering, resource
-replacement, and the obligation vs advice distinction.
+Demonstrates DECISION runners, INPUT/OUTPUT/ERROR mappers and consumers, plus
+content filtering, resource replacement, and the obligation vs advice distinction.
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ from __future__ import annotations
 from typing import Any
 
 import structlog
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, Request
 
 from sapl_base.types import AuthorizationDecision
 from sapl_fastapi.decorators import pre_enforce, post_enforce
@@ -70,7 +70,7 @@ async def get_patient_full(request: Request) -> dict[str, Any]:
 @router.get("/logged")
 @pre_enforce(action="readLogged", resource="logged")
 async def get_logged(request: Request) -> dict[str, Any]:
-    """RunnableConstraintHandlerProvider -- LogAccessHandler.
+    """DECISION runner -- LogAccessHandler.
 
     The PDP returns PERMIT with obligation:
       { "type": "logAccess", "message": "Patient data accessed by clinician" }
@@ -86,7 +86,7 @@ async def get_logged(request: Request) -> dict[str, Any]:
 @router.get("/audited")
 @pre_enforce(action="readAudited", resource="audited")
 async def get_audited(request: Request) -> dict[str, Any]:
-    """ConsumerConstraintHandlerProvider -- AuditTrailHandler.
+    """OUTPUT consumer -- AuditTrailHandler.
 
     The PDP returns PERMIT with obligation:
       { "type": "auditTrail", "action": "readMedicalRecord" }
@@ -114,7 +114,7 @@ async def get_audit_log(request: Request) -> list[dict[str, Any]]:
 @router.get("/redacted")
 @pre_enforce(action="readRedacted", resource="redacted")
 async def get_redacted(request: Request) -> dict[str, Any]:
-    """MappingConstraintHandlerProvider -- RedactFieldsHandler.
+    """OUTPUT mapper -- RedactFieldsHandler.
 
     The PDP returns PERMIT with obligation:
       { "type": "redactFields", "fields": ["ssn", "creditCard"] }
@@ -133,7 +133,7 @@ async def get_redacted(request: Request) -> dict[str, Any]:
 @router.get("/documents")
 @pre_enforce(action="readDocuments", resource="documents")
 async def get_documents(request: Request) -> Any:
-    """FilterPredicateConstraintHandlerProvider -- ClassificationFilterHandler.
+    """OUTPUT mapper using DROP sentinel -- ClassificationFilterHandler.
 
     The PDP returns PERMIT with obligation:
       { "type": "filterByClassification", "maxLevel": "INTERNAL" }
@@ -153,7 +153,7 @@ async def get_timestamped(
     request: Request,
     policy_timestamp: str = "not injected",
 ) -> dict[str, Any]:
-    """MethodInvocationConstraintHandlerProvider -- InjectTimestampHandler.
+    """INPUT mapper -- InjectTimestampHandler injects policy timestamp into kwargs.
 
     The PDP returns PERMIT with obligation:
       { "type": "injectTimestamp" }
@@ -173,7 +173,7 @@ async def get_timestamped(
 @router.get("/error-demo")
 @pre_enforce(action="readErrorDemo", resource="errorDemo")
 async def get_error_demo(request: Request) -> dict[str, Any]:
-    """ErrorHandlerProvider + ErrorMappingConstraintHandlerProvider.
+    """ERROR consumer + ERROR mapper.
 
     The PDP returns PERMIT with two obligations:
       { "type": "notifyOnError" }

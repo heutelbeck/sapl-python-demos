@@ -1,7 +1,8 @@
 """SAPL Flask Demo -- main application entry point.
 
-Configures SAPL PEP integration with all 7 constraint handler types
-and includes blueprints for basic and constraint enforcement demos.
+Configures SAPL PEP integration with a set of `ConstraintHandlerProvider`
+implementations covering DECISION runners, INPUT/OUTPUT/ERROR mappers and
+consumers, and registers blueprints for basic and constraint enforcement demos.
 """
 
 from __future__ import annotations
@@ -27,7 +28,6 @@ load_dotenv()
 
 app = Flask(__name__)
 app.config["SAPL_BASE_URL"] = os.getenv("SAPL_PDP_URL", "http://localhost:8443")
-app.config["SAPL_ALLOW_INSECURE_CONNECTIONS"] = True
 
 sapl = SaplFlask(app)
 register_all_handlers(sapl)

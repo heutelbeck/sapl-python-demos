@@ -16,6 +16,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PYTHON_DIR="${PYTHON_DIR:-/home/dominic/git/sapl-python-demos}"
 NESTJS_DIR="${NESTJS_DIR:-/home/dominic/git/sapl-nestjs-demo}"
 DOTNET_DIR="${DOTNET_DIR:-/home/dominic/git/sapl-dotnet-demos}"
+SPRING_DIR="${SPRING_DIR:-/home/dominic/git/sapl-demos/spring-demo}"
 VENV="${VENV:-/tmp/sapl-venv/bin}"
 PORT="${PORT:-3000}"
 RESULTS_DIR="${RESULTS_DIR:-/tmp/sapl-test-results}"
@@ -90,17 +91,25 @@ wait_for_server "http://localhost:$PORT/api/hello"
 cd "$SCRIPT_DIR" && bash test_demo.sh "http://localhost:$PORT" --jwt 2>&1 | tee "$RESULTS_DIR/tornado.txt"
 kill_port
 
-# ---- NestJS ----
-printf "\n${BOLD}[5/6] NestJS Demo${NC}\n"
+# ---- NestJS (HTTP transport) ----
+printf "\n${BOLD}[5/8] NestJS Demo (HTTP)${NC}\n"
 # NestJS needs its own PDP with its policies (missing permit-read-patients, permit-transfer)
 # but the shared PDP has those policies which is fine -- extra policies don't hurt.
-cd "$NESTJS_DIR" && node dist/main > /tmp/nestjs_demo.log 2>&1 &
+cd "$NESTJS_DIR" && SAPL_TRANSPORT=http node dist/main > /tmp/nestjs_demo.log 2>&1 &
 wait_for_server "http://localhost:$PORT/api/hello"
-cd "$SCRIPT_DIR" && bash test_demo.sh "http://localhost:$PORT" --jwt 2>&1 | tee "$RESULTS_DIR/nestjs.txt"
+cd "$SCRIPT_DIR" && bash test_demo.sh "http://localhost:$PORT" --jwt 2>&1 | tee "$RESULTS_DIR/nestjs-http.txt"
+kill_port
+
+# ---- NestJS (RSocket transport) ----
+printf "\n${BOLD}[6/8] NestJS Demo (RSocket)${NC}\n"
+# Same demo, RSocket transport against the shared SAPL Node on its RSocket port.
+cd "$NESTJS_DIR" && SAPL_TRANSPORT=rsocket SAPL_PDP_RSOCKET_HOST=localhost SAPL_PDP_RSOCKET_PORT=7000 node dist/main > /tmp/nestjs_rsocket_demo.log 2>&1 &
+wait_for_server "http://localhost:$PORT/api/hello"
+cd "$SCRIPT_DIR" && bash test_demo.sh "http://localhost:$PORT" --jwt 2>&1 | tee "$RESULTS_DIR/nestjs-rsocket.txt"
 kill_port
 
 # ---- .NET ----
-printf "\n${BOLD}[6/6] .NET Demo${NC}\n"
+printf "\n${BOLD}[7/8] .NET Demo${NC}\n"
 DOTNET_CMD="dotnet"
 if ! command -v dotnet &>/dev/null; then
     DOTNET_CMD="nix develop /home/dominic/.dotfiles#dotnet --command dotnet"
@@ -111,6 +120,17 @@ wait_for_server "http://localhost:$PORT/api/hello"
 cd "$SCRIPT_DIR" && bash test_demo.sh "http://localhost:$PORT" --jwt 2>&1 | tee "$RESULTS_DIR/dotnet.txt"
 kill_port
 
+# ---- Spring (the reference implementation) ----
+printf "\n${BOLD}[8/8] Spring Demo${NC}\n"
+# Maven Spring Boot run binds to the configured server.port (default 8080 in the
+# spring-demo profile). Override to PORT so the same test_demo.sh assertions apply.
+cd "$SPRING_DIR" && SERVER_PORT="$PORT" SAPL_PDP_URL="http://localhost:8443" \
+    mvn -q spring-boot:run > /tmp/spring_demo.log 2>&1 &
+wait_for_server "http://localhost:$PORT/api/hello" 60
+cd "$SCRIPT_DIR" && bash test_demo.sh "http://localhost:$PORT" --jwt 2>&1 | tee "$RESULTS_DIR/spring.txt"
+# Spring boot:run via mvn does not expose a clean shutdown hook; use kill_port.
+kill_port
+
 # ---- Comparative Summary ----
 printf "\n${BOLD}========================================${NC}\n"
 printf "${BOLD}  Comparative Summary${NC}\n"
@@ -118,7 +138,7 @@ printf "${BOLD}========================================${NC}\n\n"
 
 printf "%-12s %s\n" "Demo" "Result"
 printf "%-12s %s\n" "----" "------"
-for demo in flask fastapi django tornado nestjs dotnet; do
+for demo in flask fastapi django tornado nestjs-http nestjs-rsocket dotnet spring; do
     result=$(grep "^Total:" "$RESULTS_DIR/${demo}.txt" 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' || echo "no results")
     printf "%-12s %s\n" "$demo" "$result"
 done

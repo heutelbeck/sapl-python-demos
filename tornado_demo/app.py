@@ -9,7 +9,7 @@ import tornado.ioloop
 import tornado.web
 from dotenv import load_dotenv
 
-from sapl_tornado.config import SaplConfig
+from sapl_tornado import SaplConfig
 from sapl_tornado.dependencies import configure_sapl
 
 from handlers import register_all_handlers
@@ -40,7 +40,7 @@ def make_app() -> tornado.web.Application:
 
 def main() -> None:
     pdp_url = os.getenv("SAPL_PDP_URL", "http://localhost:8443")
-    configure_sapl(SaplConfig(base_url=pdp_url, allow_insecure_connections=True))
+    configure_sapl(SaplConfig(base_url=pdp_url))
     register_all_handlers()
 
     port = int(os.getenv("PORT", "3000"))

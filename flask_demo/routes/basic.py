@@ -137,6 +137,6 @@ def transfer_route():
 def _do_transfer(amount: float = 10000.0, recipient: str = "default-account"):
     """PreEnforce with argument manipulation (cap amount).
 
-    The CapTransferHandler caps amount via MethodInvocationContext kwargs.
+    The CapTransferHandler caps amount as an INPUT mapper over (args, kwargs).
     """
     return {"transferred": amount, "recipient": recipient, "status": "completed"}

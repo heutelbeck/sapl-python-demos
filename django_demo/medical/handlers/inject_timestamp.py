@@ -1,40 +1,29 @@
-"""MethodInvocationConstraintHandlerProvider -- InjectTimestampHandler.
+"""InjectTimestampHandler: INPUT mapper that adds `policy_timestamp` to kwargs."""
 
-Handles obligations/advice of type "injectTimestamp".
-Modifies the method invocation kwargs BEFORE the endpoint function executes,
-adding a policy-enforcement timestamp. The endpoint can then read this value
-and include it in the response.
-
-Policy obligation example:
-  { "type": "injectTimestamp" }
-"""
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Sequence
 from datetime import datetime, timezone
 from typing import Any
 
 import structlog
 
-from sapl_base.constraint_types import MethodInvocationContext
+from sapl_base.pep import INPUT, ScopedHandler
 
 log = structlog.get_logger()
 
 
 class InjectTimestampHandler:
-    """Injects a policy_timestamp into kwargs before the endpoint runs."""
+    def get_handlers(self, constraint: Any) -> Sequence[ScopedHandler]:
+        if not isinstance(constraint, dict) or constraint.get("type") != "injectTimestamp":
+            return ()
 
-    def is_responsible(self, constraint: Any) -> bool:
-        return isinstance(constraint, dict) and constraint.get("type") == "injectTimestamp"
-
-    def get_handler(self, constraint: Any) -> Callable[[MethodInvocationContext], None]:
-        def handler(context: MethodInvocationContext) -> None:
+        def handler(value: Any) -> Any:
+            args, kwargs = value
+            kwargs = dict(kwargs)
             timestamp = datetime.now(timezone.utc).isoformat()
-            context.kwargs["policy_timestamp"] = timestamp
-            log.info(
-                "[METHOD] Injected policy timestamp: %s",
-                timestamp,
-                handler="InjectTimestampHandler",
-            )
+            kwargs["policy_timestamp"] = timestamp
+            log.info("[METHOD] Injected policy timestamp: %s", timestamp, handler="InjectTimestampHandler")
+            return (args, kwargs)
 
-        return handler
+        return (ScopedHandler(signal=INPUT, priority=0, shape="mapper", handler=handler),)

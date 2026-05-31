@@ -43,5 +43,4 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 SAPL_CONFIG = {
     "base_url": os.getenv("SAPL_PDP_URL", "http://localhost:8443"),
-    "allow_insecure_connections": True,
 }

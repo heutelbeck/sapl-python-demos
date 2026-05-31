@@ -18,11 +18,9 @@ from django.http import HttpRequest, JsonResponse
 from sapl_base.types import AuthorizationDecision, AuthorizationSubscription, Decision
 from sapl_django.config import get_pdp_client
 from sapl_django.decorators import (
-    enforce_drop_while_denied,
-    enforce_recoverable_if_denied,
-    enforce_till_denied,
-    pre_enforce,
     post_enforce,
+    pre_enforce,
+    stream_enforce,
 )
 
 from medical.auth import get_jwt_claims
@@ -136,7 +134,7 @@ async def transfer(request: HttpRequest):
 async def _do_transfer(amount: float = 10000.0, recipient: str = "default-account"):
     """PreEnforce with argument manipulation (cap amount).
 
-    The CapTransferHandler caps amount via MethodInvocationContext kwargs.
+    The CapTransferHandler caps amount as an INPUT mapper over (args, kwargs).
     """
     return {"transferred": amount, "recipient": recipient, "status": "completed"}
 
@@ -166,7 +164,7 @@ async def get_patient_full(request: HttpRequest):
 
 @pre_enforce(action="readLogged", resource="logged")
 async def get_logged(request: HttpRequest):
-    """RunnableConstraintHandlerProvider -- LogAccessHandler."""
+    """DECISION runner -- LogAccessHandler."""
     return {
         "message": "This response was logged by a policy obligation",
         "data": {"patientId": "P-001", "status": "active"},
@@ -175,7 +173,7 @@ async def get_logged(request: HttpRequest):
 
 @pre_enforce(action="readAudited", resource="audited")
 async def get_audited(request: HttpRequest):
-    """ConsumerConstraintHandlerProvider -- AuditTrailHandler."""
+    """OUTPUT consumer -- AuditTrailHandler."""
     return {
         "message": "This response was recorded in the audit trail",
         "record": {"id": "MR-42", "type": "blood-work", "result": "normal"},
@@ -197,7 +195,7 @@ async def get_audit_log(request: HttpRequest) -> JsonResponse:
 
 @pre_enforce(action="readRedacted", resource="redacted")
 async def get_redacted(request: HttpRequest):
-    """MappingConstraintHandlerProvider -- RedactFieldsHandler."""
+    """OUTPUT mapper -- RedactFieldsHandler."""
     return {
         "name": "John Smith",
         "ssn": "987-65-4321",
@@ -209,13 +207,13 @@ async def get_redacted(request: HttpRequest):
 
 @pre_enforce(action="readDocuments", resource="documents")
 async def get_documents(request: HttpRequest):
-    """FilterPredicateConstraintHandlerProvider -- ClassificationFilterHandler."""
+    """OUTPUT mapper using DROP sentinel -- ClassificationFilterHandler."""
     return [dict(d) for d in DOCUMENTS]
 
 
 @pre_enforce(action="readTimestamped", resource="timestamped")
 async def get_timestamped(request: HttpRequest, policy_timestamp: str = "not injected"):
-    """MethodInvocationConstraintHandlerProvider -- InjectTimestampHandler."""
+    """INPUT mapper -- InjectTimestampHandler injects policy timestamp into kwargs."""
     return {
         "message": "This response includes a policy-injected timestamp",
         "policy_timestamp": policy_timestamp,
@@ -225,7 +223,7 @@ async def get_timestamped(request: HttpRequest, policy_timestamp: str = "not inj
 
 @pre_enforce(action="readErrorDemo", resource="errorDemo")
 async def get_error_demo(request: HttpRequest):
-    """ErrorHandlerProvider + ErrorMappingConstraintHandlerProvider.
+    """ERROR consumer + ERROR mapper.
 
     The PDP returns PERMIT with two obligations:
       { "type": "notifyOnError" }
@@ -312,71 +310,28 @@ async def _heartbeat_source():
         await asyncio.sleep(2)
 
 
-def _on_deny(decision: AuthorizationDecision) -> dict[str, Any]:
-    return {"type": "ACCESS_DENIED", "message": "Stream terminated by policy"}
-
-
-def _on_suspend(decision: AuthorizationDecision) -> dict[str, Any]:
-    return {"type": "ACCESS_SUSPENDED", "message": "Waiting for re-authorization"}
-
-
-def _on_recover(decision: AuthorizationDecision) -> dict[str, Any]:
-    return {"type": "ACCESS_RESTORED", "message": "Authorization restored"}
-
-
-@enforce_till_denied(
-    action="stream:heartbeat",
-    resource="heartbeat",
-    on_stream_deny=_on_deny,
-)
+@stream_enforce(action="stream:heartbeat", resource="heartbeat")
 async def heartbeat_till_denied(request: HttpRequest):
-    """EnforceTillDenied -- stream terminates permanently on first DENY."""
+    """DENY terminates the stream with an ACCESS_DENIED SSE frame."""
     return _heartbeat_source()
 
 
-@enforce_drop_while_denied(
+@stream_enforce(
     action="stream:heartbeat",
-    resource="heartbeat",
+    resource="heartbeat-suspendable",
+    pause_rap_during_suspend=True,
 )
 async def heartbeat_drop_while_denied(request: HttpRequest):
-    """EnforceDropWhileDenied -- silently drops events during DENY periods."""
+    """SUSPEND drops items silently; PERMIT resumes the stream."""
     return _heartbeat_source()
 
 
-@enforce_recoverable_if_denied(
+@stream_enforce(
     action="stream:heartbeat",
-    resource="heartbeat",
-    on_stream_deny=_on_suspend,
-)
-async def heartbeat_terminated_by_callback(request: HttpRequest):
-    """EnforceRecoverableIfDenied with onStreamDeny only (no recover callback).
-
-    On DENY: sends ACCESS_SUSPENDED event. The stream stays alive and
-    resumes forwarding data on re-PERMIT, but no explicit restore signal
-    is sent.
-    """
-    return _heartbeat_source()
-
-
-@enforce_drop_while_denied(
-    action="stream:heartbeat",
-    resource="heartbeat",
-)
-async def heartbeat_drop_with_callbacks(request: HttpRequest):
-    """EnforceDropWhileDenied without callbacks.
-
-    Silently drops events during DENY periods. No deny/recover signals
-    are sent. The stream stays alive and resumes forwarding on re-PERMIT.
-    """
-    return _heartbeat_source()
-
-
-@enforce_recoverable_if_denied(
-    action="stream:heartbeat",
-    resource="heartbeat",
-    on_stream_deny=_on_suspend,
-    on_stream_recover=_on_recover,
+    resource="heartbeat-suspendable",
+    signal_transitions=True,
+    pause_rap_during_suspend=True,
 )
 async def heartbeat_recoverable(request: HttpRequest):
-    """EnforceRecoverableIfDenied -- sends suspend/restore signals."""
+    """Boundary signals: ACCESS_SUSPENDED on enter Suspended, ACCESS_RESTORED on resume."""
     return _heartbeat_source()

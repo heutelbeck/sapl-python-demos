@@ -1,8 +1,9 @@
 """SAPL FastAPI Demo -- main application entry point.
 
-Configures SAPL PEP integration with all 7 constraint handler types
-and includes routers for basic, constraint, content filtering, and
-streaming enforcement demos.
+Configures SAPL PEP integration with a set of `ConstraintHandlerProvider`
+implementations covering DECISION runners, INPUT/OUTPUT/ERROR mappers and
+consumers, and registers routers for basic, constraint, content filtering,
+and streaming enforcement demos.
 """
 
 from __future__ import annotations
@@ -16,8 +17,8 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from sapl_fastapi.config import SaplConfig
-from sapl_fastapi.dependencies import cleanup_sapl, configure_sapl, register_constraint_handler
+from sapl_fastapi import SaplConfig
+from sapl_fastapi.dependencies import cleanup_sapl, configure_sapl, register_provider
 
 from app.handlers.audit_trail import AuditTrailHandler
 from app.handlers.cap_transfer import CapTransferHandler
@@ -44,36 +45,18 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Application lifespan: configure SAPL and register constraint handlers."""
     config = SaplConfig(
         base_url=os.getenv("SAPL_PDP_URL", "http://localhost:8443"),
-        allow_insecure_connections=True,
     )
     configure_sapl(config)
 
-    # 1. RunnableConstraintHandlerProvider (ON_DECISION)
-    register_constraint_handler(LogAccessHandler(), "runnable")
-
-    # 2. ConsumerConstraintHandlerProvider
-    register_constraint_handler(audit_trail_handler, "consumer")
-
-    # 3. MappingConstraintHandlerProvider
-    register_constraint_handler(RedactFieldsHandler(), "mapping")
-
-    # 4. FilterPredicateConstraintHandlerProvider
-    register_constraint_handler(ClassificationFilterHandler(), "filter_predicate")
-
-    # 5. MethodInvocationConstraintHandlerProvider (inject timestamp)
-    register_constraint_handler(InjectTimestampHandler(), "method_invocation")
-
-    # 5b. MethodInvocationConstraintHandlerProvider (cap transfer amount)
-    register_constraint_handler(CapTransferHandler(), "method_invocation")
-
-    # 6. ErrorHandlerProvider
-    register_constraint_handler(NotifyOnErrorHandler(), "error_handler")
-
-    # 7. ErrorMappingConstraintHandlerProvider
-    register_constraint_handler(EnrichErrorHandler(), "error_mapping")
-
-    # 8. ConsumerConstraintHandlerProvider (streaming log)
-    register_constraint_handler(LogStreamEventHandler(), "consumer")
+    register_provider(LogAccessHandler())
+    register_provider(audit_trail_handler)
+    register_provider(RedactFieldsHandler())
+    register_provider(ClassificationFilterHandler())
+    register_provider(InjectTimestampHandler())
+    register_provider(CapTransferHandler())
+    register_provider(NotifyOnErrorHandler())
+    register_provider(LogStreamEventHandler())
+    register_provider(EnrichErrorHandler())
 
     log.info("SAPL configured with all constraint handlers registered")
 

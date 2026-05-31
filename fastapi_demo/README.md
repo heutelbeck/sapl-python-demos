@@ -1,6 +1,6 @@
 # SAPL FastAPI Demo
 
-Demo application for [`sapl-fastapi`](https://github.com/heutelbeck/sapl-python) showing every feature of the library: basic authorization, content filtering, all seven constraint handler interfaces, resource replacement, advice vs obligations, argument manipulation, and streaming SSE with continuous authorization. All endpoints work with plain `curl` except the export endpoint, which requires a JWT from Keycloak. The source files have comprehensive docstrings -- read the code for the full story.
+Demo application for [`sapl-fastapi`](https://github.com/heutelbeck/sapl-python) showing every feature of the library: basic authorization, content filtering, the full constraint handler signal taxonomy (DECISION / INPUT / OUTPUT / ERROR), resource replacement, advice vs obligations, argument manipulation, and streaming SSE with continuous authorization. All endpoints work with plain `curl` except the export endpoint, which requires a JWT from Keycloak. The source files have comprehensive docstrings -- read the code for the full story.
 
 ## Prerequisites
 
@@ -51,23 +51,23 @@ curl -s http://localhost:3000/api/constraints/patient-full | python3 -m json.too
 ### Constraint Handlers
 
 ```bash
-# RunnableConstraintHandlerProvider -- logs to server console
+# DECISION runner -- logs to server console
 curl -s http://localhost:3000/api/constraints/logged | python3 -m json.tool
 
-# ConsumerConstraintHandlerProvider -- records to audit trail
+# OUTPUT consumer -- records to audit trail
 curl -s http://localhost:3000/api/constraints/audited | python3 -m json.tool
 curl -s http://localhost:3000/api/constraints/audit-log | python3 -m json.tool
 
-# MappingConstraintHandlerProvider -- redacts fields
+# OUTPUT mapper -- redacts fields
 curl -s http://localhost:3000/api/constraints/redacted | python3 -m json.tool
 
-# FilterPredicateConstraintHandlerProvider -- filters array by classification
+# OUTPUT mapper with DROP sentinel -- filters list by classification
 curl -s http://localhost:3000/api/constraints/documents | python3 -m json.tool
 
-# MethodInvocationConstraintHandlerProvider -- injects timestamp into request
+# INPUT mapper -- injects timestamp into kwargs
 curl -s http://localhost:3000/api/constraints/timestamped | python3 -m json.tool
 
-# ErrorHandlerProvider + ErrorMappingConstraintHandlerProvider -- error pipeline
+# ERROR consumer + ERROR mapper -- error pipeline
 curl -s http://localhost:3000/api/constraints/error-demo | python3 -m json.tool
 ```
 
@@ -145,34 +145,42 @@ curl -s -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/export/2/1 |
 | POST /api/transfer | `pre_enforce` | None | Argument manipulation (cap amount) |
 | GET /api/constraints/patient | `pre_enforce` | None | Blacken SSN |
 | GET /api/constraints/patient-full | `pre_enforce` | None | Blacken + delete + replace |
-| GET /api/constraints/logged | `pre_enforce` | None | RunnableConstraintHandlerProvider |
-| GET /api/constraints/audited | `pre_enforce` | None | ConsumerConstraintHandlerProvider |
+| GET /api/constraints/logged | `pre_enforce` | None | DECISION runner |
+| GET /api/constraints/audited | `pre_enforce` | None | OUTPUT consumer |
 | GET /api/constraints/audit-log | None | None | View audit trail (auxiliary) |
-| GET /api/constraints/redacted | `pre_enforce` | None | MappingConstraintHandlerProvider |
-| GET /api/constraints/documents | `pre_enforce` | None | FilterPredicateConstraintHandlerProvider |
-| GET /api/constraints/timestamped | `pre_enforce` | None | MethodInvocationConstraintHandlerProvider |
-| GET /api/constraints/error-demo | `pre_enforce` | None | ErrorHandler + ErrorMapping |
+| GET /api/constraints/redacted | `pre_enforce` | None | OUTPUT mapper |
+| GET /api/constraints/documents | `pre_enforce` | None | OUTPUT mapper using DROP sentinel |
+| GET /api/constraints/timestamped | `pre_enforce` | None | INPUT mapper |
+| GET /api/constraints/error-demo | `pre_enforce` | None | ERROR consumer + ERROR mapper |
 | GET /api/constraints/resource-replaced | `pre_enforce` | None | PDP resource replacement |
 | GET /api/constraints/advised | `pre_enforce` | None | Advice (best-effort) |
 | GET /api/constraints/record/{id} | `post_enforce` | None | Return value in subscription |
 | GET /api/constraints/unhandled | `pre_enforce` | None | Unhandled obligation (fail-fast) |
 | GET /api/content-filter/blacken | `pre_enforce` | None | Blacken action only |
 | GET /api/content-filter/all-actions | `pre_enforce` | None | Blacken + delete + replace |
-| SSE /api/stream/heartbeat | `enforce_till_denied` | None | Terminal denial |
-| SSE /api/stream/data | `enforce_drop_while_denied` | None | Silent drops during DENY |
-| SSE /api/stream/recoverable | `enforce_recoverable_if_denied` | None | In-band deny/recover signals |
+| SSE /api/stream/heartbeat | `stream_enforce` | None | Terminal denial on DENY |
+| SSE /api/stream/data | `stream_enforce` (`pause_rap_during_suspend=True`) | None | Silent drops during SUSPEND |
+| SSE /api/stream/recoverable | `stream_enforce` (`signal_transitions=True`, `pause_rap_during_suspend=True`) | None | In-band SUSPEND/RESTORED signals |
 
 ### Constraint Handler Reference
 
-| Interface | Signature | When It Runs | Demo Handler |
-|-----------|-----------|--------------|--------------|
-| `RunnableConstraintHandlerProvider` | `() -> None` | On decision, before method | `LogAccessHandler` |
-| `ConsumerConstraintHandlerProvider` | `(value) -> None` | After method, side-effect on response | `AuditTrailHandler` |
-| `MappingConstraintHandlerProvider` | `(value) -> Any` | After method, transforms response | `RedactFieldsHandler` |
-| `FilterPredicateConstraintHandlerProvider` | `(element) -> bool` | After method, filters arrays | `ClassificationFilterHandler` |
-| `MethodInvocationConstraintHandlerProvider` | `(ctx: MethodInvocationContext) -> None` | Before method, modifies request/args | `InjectTimestampHandler`, `CapTransferHandler` |
-| `ErrorHandlerProvider` | `(error) -> None` | On error, side-effect | `NotifyOnErrorHandler` |
-| `ErrorMappingConstraintHandlerProvider` | `(error) -> Exception` | On error, transforms error | `EnrichErrorHandler` |
+Every provider implements `ConstraintHandlerProvider.get_handlers(constraint) -> Sequence[ScopedHandler]`.
+A `ScopedHandler` is a triple of `(signal, shape, priority)`:
+
+- **Signal**: `DECISION`, `INPUT`, `OUTPUT`, or `ERROR`. Where the handler fires.
+- **Shape**: `runner` (no value), `consumer` (observes value), or `mapper` (transforms value).
+- **Priority**: integer; lower fires first. Same-priority mappers must commute.
+
+| Demo Handler | Signal | Shape | Notes |
+|--------------|--------|-------|-------|
+| `LogAccessHandler` | `DECISION` | runner | Side-effect on every decision |
+| `AuditTrailHandler` | `OUTPUT` | consumer | Records response to in-memory log |
+| `RedactFieldsHandler` | `OUTPUT` | mapper | Blackens / replaces / deletes fields |
+| `ClassificationFilterHandler` | `OUTPUT` | mapper | Walks list, drops elements by classification |
+| `InjectTimestampHandler` | `INPUT` | mapper | Adds `policy_timestamp` to kwargs |
+| `CapTransferHandler` | `INPUT` | mapper | Clamps `amount` kwarg |
+| `NotifyOnErrorHandler` | `ERROR` | consumer | Side-effect on exception |
+| `EnrichErrorHandler` | `ERROR` | mapper | Wraps exception with support URL |
 
 ### Policy Reference
 

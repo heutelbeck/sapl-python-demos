@@ -1,11 +1,22 @@
-"""Constraint handler providers for SAPL FastMCP demo."""
+"""Constraint handler providers for the SAPL FastMCP demo.
+
+Each provider implements ``ConstraintHandlerProvider.get_handlers(constraint)``
+and returns ``ScopedHandler`` instances at the appropriate signals:
+
+  * AccessLoggingProvider          -> DECISION runner
+  * LimitResultsProvider           -> INPUT    mapper
+  * RedactFieldsProvider           -> OUTPUT   mapper
+  * FilterByClassificationProvider -> OUTPUT   mapper (walks list, drops elements)
+"""
+
+from __future__ import annotations
 
 import copy
 import logging
-from collections.abc import Callable
+from collections.abc import Sequence
 from typing import Any
 
-from sapl_base.constraint_types import MethodInvocationContext, Signal
+from sapl_base.pep import DECISION, INPUT, OUTPUT, ScopedHandler
 
 BLACKEN_CHAR = "X"
 
@@ -13,15 +24,11 @@ logger = logging.getLogger("sapl.mcp")
 
 
 class AccessLoggingProvider:
-    """Logs tool access. Handles obligations/advice with type 'logAccess'."""
+    """DECISION runner: logs tool access. Handles ``logAccess`` obligations."""
 
-    def is_responsible(self, constraint: Any) -> bool:
-        return isinstance(constraint, dict) and constraint.get("type") == "logAccess"
-
-    def get_signal(self) -> Signal:
-        return Signal.ON_DECISION
-
-    def get_handler(self, constraint: Any) -> Callable[[], None]:
+    def get_handlers(self, constraint: Any) -> Sequence[ScopedHandler]:
+        if not isinstance(constraint, dict) or constraint.get("type") != "logAccess":
+            return ()
         message = constraint.get("message", "Tool access")
         subject = constraint.get("subject", "unknown")
         action = constraint.get("action", "unknown")
@@ -31,45 +38,48 @@ class AccessLoggingProvider:
                 "ACCESS LOG: %s -- subject=%s, action=%s", message, subject, action
             )
 
-        return handler
+        return (ScopedHandler(signal=DECISION, priority=0, shape="runner", handler=handler),)
 
 
 class LimitResultsProvider:
-    """Caps the 'limit' parameter based on a policy obligation.
+    """INPUT mapper: caps the ``limit`` argument based on a policy obligation.
 
-    Handles obligations like: {"type": "limitResults", "maxLimit": 5}
+    Handles obligations like ``{"type": "limitResults", "maxLimit": 5}``.
     If the caller's ``limit`` exceeds ``maxLimit``, it is clamped down.
     """
 
-    def is_responsible(self, constraint: Any) -> bool:
-        return isinstance(constraint, dict) and constraint.get("type") == "limitResults"
-
-    def get_handler(self, constraint: Any) -> Callable[[MethodInvocationContext], None]:
+    def get_handlers(self, constraint: Any) -> Sequence[ScopedHandler]:
+        if not isinstance(constraint, dict) or constraint.get("type") != "limitResults":
+            return ()
         max_limit = int(constraint.get("maxLimit", 10))
 
-        def handler(context: MethodInvocationContext) -> None:
-            current = context.kwargs.get("limit")
+        def handler(value: Any) -> Any:
+            args, kwargs = value
+            kwargs = dict(kwargs)
+            current = kwargs.get("limit")
             if current is None:
-                return
+                return (args, kwargs)
             try:
-                current = int(current)
+                current_int = int(current)
             except (TypeError, ValueError):
-                context.kwargs["limit"] = max_limit
-                return
-            if current > max_limit:
-                context.kwargs["limit"] = max_limit
+                kwargs["limit"] = max_limit
+                return (args, kwargs)
+            if current_int > max_limit:
+                kwargs["limit"] = max_limit
+            return (args, kwargs)
 
-        return handler
+        return (ScopedHandler(signal=INPUT, priority=0, shape="mapper", handler=handler),)
 
 
 class RedactFieldsProvider:
-    """Redacts named fields anywhere in the return value.
+    """OUTPUT mapper: redacts named fields anywhere in the return value.
 
     Walks dicts and lists recursively. When a dict key matches one of
     the configured field names, the value is blackened, replaced, or
     deleted depending on the mode.
 
-    Handles obligations like:
+    Handles obligations like::
+
         {"type": "redactFields", "fields": ["email", "card_number"],
          "mode": "blacken", "discloseRight": 4}
 
@@ -79,13 +89,9 @@ class RedactFieldsProvider:
         delete   - remove the key entirely
     """
 
-    def is_responsible(self, constraint: Any) -> bool:
-        return isinstance(constraint, dict) and constraint.get("type") == "redactFields"
-
-    def get_priority(self) -> int:
-        return 0
-
-    def get_handler(self, constraint: Any) -> Callable[[Any], Any]:
+    def get_handlers(self, constraint: Any) -> Sequence[ScopedHandler]:
+        if not isinstance(constraint, dict) or constraint.get("type") != "redactFields":
+            return ()
         fields = set(constraint.get("fields", []))
         mode = constraint.get("mode", "blacken")
         replacement = constraint.get("replacement", "REDACTED")
@@ -126,28 +132,34 @@ class RedactFieldsProvider:
         def handler(value: Any) -> Any:
             return walk(copy.deepcopy(value))
 
-        return handler
+        return (ScopedHandler(signal=OUTPUT, priority=10, shape="mapper", handler=handler),)
 
 
 class FilterByClassificationProvider:
-    """Filters list results by classification level.
+    """OUTPUT mapper: filters list results by classification level.
 
-    Handles obligations like:
-    {"type": "filterByClassification", "allowedLevels": ["public", "internal"]}
+    Handles obligations like::
 
-    Removes list elements whose ``classification`` field is not in the
-    allowed set. Non-dict elements pass through unfiltered.
+        {"type": "filterByClassification", "allowedLevels": ["public", "internal"]}
+
+    When the return value is a list, removes elements whose
+    ``classification`` field is not in the allowed set. Non-list return
+    values pass through unchanged. Non-dict elements pass through.
     """
 
-    def is_responsible(self, constraint: Any) -> bool:
-        return isinstance(constraint, dict) and constraint.get("type") == "filterByClassification"
-
-    def get_handler(self, constraint: Any) -> Callable[[Any], bool]:
+    def get_handlers(self, constraint: Any) -> Sequence[ScopedHandler]:
+        if not isinstance(constraint, dict) or constraint.get("type") != "filterByClassification":
+            return ()
         allowed = set(constraint.get("allowedLevels", []))
 
-        def predicate(element: Any) -> bool:
-            if isinstance(element, dict):
-                return element.get("classification") in allowed
-            return True
+        def handler(value: Any) -> Any:
+            if not isinstance(value, list):
+                return value
+            return [
+                element
+                for element in value
+                if not isinstance(element, dict)
+                or element.get("classification") in allowed
+            ]
 
-        return predicate
+        return (ScopedHandler(signal=OUTPUT, priority=20, shape="mapper", handler=handler),)

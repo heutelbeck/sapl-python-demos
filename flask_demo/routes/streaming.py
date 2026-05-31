@@ -1,31 +1,31 @@
 """SSE streaming enforcement endpoints.
 
-Demonstrates the three SAPL streaming enforcement strategies:
-  1. EnforceTillDenied -- terminates permanently on first DENY
-  2. EnforceDropWhileDenied -- silently drops events during DENY, resumes on PERMIT
-  3. EnforceRecoverableIfDenied -- sends suspend/restore signals on policy changes
+All three endpoints use the same `@stream_enforce` decorator with different
+flag combinations:
 
-All three emit a heartbeat every 2 seconds. The PDP policy
-streaming-heartbeat-time-based cycles PERMIT/DENY based on the current second
-(0-19 permit, 20-39 deny, 40-59 permit).
+  * till-denied            -> defaults; DENY terminates with ACCESS_DENIED.
+  * drop-while-denied      -> pause_rap_during_suspend=True; SUSPEND drops
+                              items silently; PERMIT resumes.
+  * recoverable            -> signal_transitions=True + pause_rap_during_suspend=True;
+                              SUSPEND emits ACCESS_SUSPENDED, return to
+                              Permitting emits ACCESS_RESTORED.
+
+The cycle PERMIT -> SUSPEND -> PERMIT is driven by the policies
+`streaming-heartbeat-till-denied.sapl` (emits DENY in the window) and
+`streaming-heartbeat-suspendable.sapl` (emits SUSPEND in the window).
 """
 
 from __future__ import annotations
 
 import asyncio
+from collections.abc import AsyncIterator
 from datetime import datetime, timezone
-from typing import Any, AsyncIterator
+from typing import Any
 
 import structlog
-
-from sapl_base.types import AuthorizationDecision
-from sapl_flask.decorators import (
-    enforce_drop_while_denied,
-    enforce_recoverable_if_denied,
-    enforce_till_denied,
-)
-
 from flask import Blueprint
+
+from sapl_flask.decorators import stream_enforce
 
 log = structlog.get_logger()
 
@@ -41,29 +41,10 @@ async def _heartbeat_source() -> AsyncIterator[dict[str, Any]]:
         await asyncio.sleep(2)
 
 
-def _on_deny(decision: AuthorizationDecision) -> dict[str, Any]:
-    return {"type": "ACCESS_DENIED", "message": "Stream terminated by policy"}
-
-
-def _on_suspend(decision: AuthorizationDecision) -> dict[str, Any]:
-    return {"type": "ACCESS_SUSPENDED", "message": "Waiting for re-authorization"}
-
-
-def _on_recover(decision: AuthorizationDecision) -> dict[str, Any]:
-    return {"type": "ACCESS_RESTORED", "message": "Authorization restored"}
-
-
 @streaming_bp.route("/heartbeat/till-denied")
-@enforce_till_denied(
-    action="stream:heartbeat",
-    resource="heartbeat",
-    on_stream_deny=_on_deny,
-)
+@stream_enforce(action="stream:heartbeat", resource="heartbeat")
 def heartbeat_till_denied():
-    """EnforceTillDenied -- stream terminates permanently on first DENY.
-
-    The onStreamDeny callback sends a final ACCESS_DENIED event before
-    the stream completes. Once denied, the client must reconnect.
+    """DENY terminates the stream with an `ACCESS_DENIED` SSE frame.
 
     Connect with: curl -N http://localhost:3000/api/streaming/heartbeat/till-denied
     """
@@ -71,68 +52,28 @@ def heartbeat_till_denied():
 
 
 @streaming_bp.route("/heartbeat/drop-while-denied")
-@enforce_drop_while_denied(
+@stream_enforce(
     action="stream:heartbeat",
-    resource="heartbeat",
+    resource="heartbeat-suspendable",
+    pause_rap_during_suspend=True,
 )
 def heartbeat_drop_while_denied():
-    """EnforceDropWhileDenied -- silently drops events during DENY periods.
-
-    The client sees gaps in sequence numbers but the stream stays open.
-    Events resume automatically when the PDP re-permits.
+    """SUSPEND drops items silently; PERMIT resumes the stream.
 
     Connect with: curl -N http://localhost:3000/api/streaming/heartbeat/drop-while-denied
     """
     return _heartbeat_source()
 
 
-@streaming_bp.route("/heartbeat/terminated-by-callback")
-@enforce_recoverable_if_denied(
-    action="stream:heartbeat",
-    resource="heartbeat",
-    on_stream_deny=_on_suspend,
-)
-def heartbeat_terminated_by_callback():
-    """EnforceRecoverableIfDenied with onStreamDeny only (no recover callback).
-
-    On DENY: sends ACCESS_SUSPENDED event. The stream stays alive and
-    resumes forwarding data on re-PERMIT, but no explicit restore signal
-    is sent.
-
-    Connect with: curl -N http://localhost:3000/api/streaming/heartbeat/terminated-by-callback
-    """
-    return _heartbeat_source()
-
-
-@streaming_bp.route("/heartbeat/drop-with-callbacks")
-@enforce_drop_while_denied(
-    action="stream:heartbeat",
-    resource="heartbeat",
-)
-def heartbeat_drop_with_callbacks():
-    """EnforceDropWhileDenied without callbacks.
-
-    Silently drops events during DENY periods. No deny/recover signals
-    are sent. The stream stays alive and resumes forwarding on re-PERMIT.
-
-    Connect with: curl -N http://localhost:3000/api/streaming/heartbeat/drop-with-callbacks
-    """
-    return _heartbeat_source()
-
-
 @streaming_bp.route("/heartbeat/recoverable")
-@enforce_recoverable_if_denied(
+@stream_enforce(
     action="stream:heartbeat",
-    resource="heartbeat",
-    on_stream_deny=_on_suspend,
-    on_stream_recover=_on_recover,
+    resource="heartbeat-suspendable",
+    signal_transitions=True,
+    pause_rap_during_suspend=True,
 )
 def heartbeat_recoverable():
-    """EnforceRecoverableIfDenied -- sends suspend/restore signals.
-
-    On DENY: sends an ACCESS_SUSPENDED event.
-    On re-PERMIT: sends an ACCESS_RESTORED event.
-    The client can show UI status changes based on these signals.
+    """Boundary signals: `ACCESS_SUSPENDED` on enter Suspended, `ACCESS_RESTORED` on resume.
 
     Connect with: curl -N http://localhost:3000/api/streaming/heartbeat/recoverable
     """

@@ -328,75 +328,43 @@ fi
 # ============================================================
 printf "\n${BOLD}--- Streaming (SSE) ---${NC}\n"
 
-# The streaming policy cycles PERMIT/DENY on a 20-second boundary:
-#   seconds 0-19: PERMIT, 20-39: DENY, 40-59: PERMIT
-# enforce_till_denied terminates on first DENY, so we wait until
-# we're early in a PERMIT window to guarantee data.
+# The streaming policies cycle PERMIT/(DENY or SUSPEND) on a 20-second
+# boundary inside one full minute. Each assertion observes the stream
+# for one full cycle (65s) and checks only that the expected pattern
+# of events occurred within that window. Counts and order are
+# intentionally not asserted -- the test is robust against curl
+# latency and window-boundary races.
 
-SSE_TIMEOUT=25
+SSE_TIMEOUT=65
 
-wait_for_permit_window() {
-    local sec
-    sec=$(date +%S | sed 's/^0//')
-    local waited=0
-    while ! { [[ $sec -ge 0 && $sec -le 10 ]] || [[ $sec -ge 40 && $sec -le 50 ]]; }; do
-        sleep 1
-        waited=$((waited + 1))
-        sec=$(date +%S | sed 's/^0//')
-        if [[ $waited -ge 30 ]]; then
-            break
-        fi
-    done
-    if [[ $waited -gt 0 ]]; then
-        printf "  (waited %ds for PERMIT window, now at second %d)\n" "$waited" "$sec"
-    fi
-}
-
-# -- till-denied --
-wait_for_permit_window
+# -- till-denied: ACCESS_DENIED marker must appear within one full cycle.
+# Heartbeats are only observable if the stream is opened during the PERMIT
+# window; the DENY-terminates semantic is the distinctive property here.
 do_sse "/api/streaming/heartbeat/till-denied" "$SSE_TIMEOUT"
-if echo "$BODY" | grep -q "^data:"; then
-    data_count=$(echo "$BODY" | grep -c "^data:" || true)
-    has_seq=$(echo "$BODY" | grep -c '"seq"' || true)
-    has_denied=$(echo "$BODY" | grep -c 'ACCESS_DENIED' || true)
-    if [[ "$has_seq" -ge 1 ]]; then
-        if [[ "$has_denied" -ge 1 ]]; then
-            pass "SSE /api/streaming/heartbeat/till-denied -- ${data_count} events, terminated by DENY"
-        else
-            pass "SSE /api/streaming/heartbeat/till-denied -- ${data_count} events (timeout before DENY)"
-        fi
-    else
-        fail "SSE /api/streaming/heartbeat/till-denied" "got ${data_count} SSE lines but no heartbeat seq data"
-    fi
+has_denied=$(echo "$BODY" | grep -c 'ACCESS_DENIED' || true)
+if [[ "$has_denied" -ge 1 ]]; then
+    pass "SSE /api/streaming/heartbeat/till-denied -- DENY termination observed"
 else
-    fail "SSE /api/streaming/heartbeat/till-denied" "no SSE data received in ${SSE_TIMEOUT}s"
+    fail "SSE /api/streaming/heartbeat/till-denied" "no ACCESS_DENIED in ${SSE_TIMEOUT}s"
 fi
 
-# -- drop-while-denied --
+# -- drop-while-denied: must see at least one heartbeat (SUSPEND windows are silent) --
 do_sse "/api/streaming/heartbeat/drop-while-denied" "$SSE_TIMEOUT"
-if echo "$BODY" | grep -q "^data:"; then
-    data_count=$(echo "$BODY" | grep -c "^data:" || true)
-    pass "SSE /api/streaming/heartbeat/drop-while-denied -- ${data_count} events"
+has_seq=$(echo "$BODY" | grep -c '"seq"' || true)
+if [[ "$has_seq" -ge 1 ]]; then
+    pass "SSE /api/streaming/heartbeat/drop-while-denied -- heartbeats observed during PERMIT phase"
 else
-    fail "SSE /api/streaming/heartbeat/drop-while-denied" "no SSE data lines received in ${SSE_TIMEOUT}s"
+    fail "SSE /api/streaming/heartbeat/drop-while-denied" "no heartbeats in ${SSE_TIMEOUT}s"
 fi
 
-# -- recoverable --
+# -- recoverable: must see at least one heartbeat AND at least one boundary signal --
 do_sse "/api/streaming/heartbeat/recoverable" "$SSE_TIMEOUT"
-if echo "$BODY" | grep -q "^data:"; then
-    data_count=$(echo "$BODY" | grep -c "^data:" || true)
-    has_suspended=$(echo "$BODY" | grep -c 'ACCESS_SUSPENDED' || true)
-    has_restored=$(echo "$BODY" | grep -c 'ACCESS_RESTORED' || true)
-    detail=""
-    if [[ "$has_suspended" -ge 1 ]]; then
-        detail="${detail}, saw SUSPENDED"
-    fi
-    if [[ "$has_restored" -ge 1 ]]; then
-        detail="${detail}, saw RESTORED"
-    fi
-    pass "SSE /api/streaming/heartbeat/recoverable -- ${data_count} events${detail}"
+has_seq=$(echo "$BODY" | grep -c '"seq"' || true)
+has_boundary=$(echo "$BODY" | grep -cE 'ACCESS_(SUSPENDED|RESTORED)' || true)
+if [[ "$has_seq" -ge 1 && "$has_boundary" -ge 1 ]]; then
+    pass "SSE /api/streaming/heartbeat/recoverable -- heartbeats and at least one boundary signal observed"
 else
-    fail "SSE /api/streaming/heartbeat/recoverable" "no SSE data lines received in ${SSE_TIMEOUT}s"
+    fail "SSE /api/streaming/heartbeat/recoverable" "seq=$has_seq boundary=$has_boundary"
 fi
 
 # ============================================================

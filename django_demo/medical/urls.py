@@ -42,8 +42,6 @@ urlpatterns = [
     # Streaming
     path("streaming/heartbeat/till-denied", views.heartbeat_till_denied),
     path("streaming/heartbeat/drop-while-denied", views.heartbeat_drop_while_denied),
-    path("streaming/heartbeat/terminated-by-callback", views.heartbeat_terminated_by_callback),
-    path("streaming/heartbeat/drop-with-callbacks", views.heartbeat_drop_with_callbacks),
     path("streaming/heartbeat/recoverable", views.heartbeat_recoverable),
 
     # Service-layer enforcement

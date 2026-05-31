@@ -1,17 +1,17 @@
 """Constraint handler demo endpoints.
 
 Each endpoint is protected by a SAPL policy that attaches obligations or advice.
-The ConstraintEnforcementService discovers registered handlers and builds a
-ConstraintHandlerBundle that enforces all constraints.
+Registered providers expose `ScopedHandler` triples (signal, shape, priority)
+that the EnforcementPlanner schedules into a per-decision plan.
 
-Demonstrates all 7 constraint handler types plus content filtering, resource
-replacement, and the obligation vs advice distinction.
+Demonstrates DECISION runners, INPUT/OUTPUT/ERROR mappers and consumers, plus
+content filtering, resource replacement, and the obligation vs advice distinction.
 """
 
 from __future__ import annotations
 
 import structlog
-from flask import Blueprint, abort, jsonify
+from flask import Blueprint, jsonify
 
 from sapl_base.types import AuthorizationDecision
 from sapl_flask.decorators import pre_enforce, post_enforce
@@ -32,7 +32,7 @@ def handle_runtime_error(exc):
 @constraints_bp.route("/logged")
 @pre_enforce(action="readLogged", resource="logged")
 def get_logged():
-    """RunnableConstraintHandlerProvider -- LogAccessHandler.
+    """DECISION runner -- LogAccessHandler.
 
     The PDP returns PERMIT with obligation:
       { "type": "logAccess", "message": "Patient data accessed by clinician" }
@@ -48,7 +48,7 @@ def get_logged():
 @constraints_bp.route("/audited")
 @pre_enforce(action="readAudited", resource="audited")
 def get_audited():
-    """ConsumerConstraintHandlerProvider -- AuditTrailHandler.
+    """OUTPUT consumer -- AuditTrailHandler.
 
     The PDP returns PERMIT with obligation:
       { "type": "auditTrail", "action": "readMedicalRecord" }
@@ -76,7 +76,7 @@ def get_audit_log():
 @constraints_bp.route("/redacted")
 @pre_enforce(action="readRedacted", resource="redacted")
 def get_redacted():
-    """MappingConstraintHandlerProvider -- RedactFieldsHandler.
+    """OUTPUT mapper -- RedactFieldsHandler.
 
     The PDP returns PERMIT with obligation:
       { "type": "redactFields", "fields": ["ssn", "creditCard"] }
@@ -137,7 +137,7 @@ def get_patient_full():
 @constraints_bp.route("/documents")
 @pre_enforce(action="readDocuments", resource="documents")
 def get_documents():
-    """FilterPredicateConstraintHandlerProvider -- ClassificationFilterHandler.
+    """OUTPUT mapper using DROP sentinel -- ClassificationFilterHandler.
 
     The PDP returns PERMIT with obligation:
       { "type": "filterByClassification", "maxLevel": "INTERNAL" }
@@ -154,7 +154,7 @@ def get_documents():
 @constraints_bp.route("/timestamped")
 @pre_enforce(action="readTimestamped", resource="timestamped")
 def get_timestamped(policy_timestamp: str = "not injected"):
-    """MethodInvocationConstraintHandlerProvider -- InjectTimestampHandler.
+    """INPUT mapper -- InjectTimestampHandler injects policy timestamp into kwargs.
 
     The PDP returns PERMIT with obligation:
       { "type": "injectTimestamp" }
@@ -174,7 +174,7 @@ def get_timestamped(policy_timestamp: str = "not injected"):
 @constraints_bp.route("/error-demo")
 @pre_enforce(action="readErrorDemo", resource="errorDemo")
 def get_error_demo():
-    """ErrorHandlerProvider + ErrorMappingConstraintHandlerProvider.
+    """ERROR consumer + ERROR mapper.
 
     The PDP returns PERMIT with two obligations:
       { "type": "notifyOnError" }

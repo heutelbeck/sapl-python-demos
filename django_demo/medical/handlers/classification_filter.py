@@ -1,21 +1,13 @@
-"""FilterPredicateConstraintHandlerProvider -- ClassificationFilterHandler.
+"""ClassificationFilterHandler: OUTPUT mapper that filters list elements by classification."""
 
-Handles obligations/advice of type "filterByClassification".
-When the endpoint returns a list, this handler filters out elements whose
-classification level exceeds the allowed maximum.
-
-Each element is expected to have a "classification" field.
-Elements without a classification are excluded (fail-closed).
-
-Policy obligation example:
-  { "type": "filterByClassification", "maxLevel": "INTERNAL" }
-"""
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Sequence
 from typing import Any
 
 import structlog
+
+from sapl_base.pep import OUTPUT, ScopedHandler
 
 log = structlog.get_logger()
 
@@ -28,35 +20,36 @@ _CLASSIFICATION_LEVELS: dict[str, int] = {
 
 
 class ClassificationFilterHandler:
-    """Filters list elements by classification level."""
-
-    def is_responsible(self, constraint: Any) -> bool:
-        return isinstance(constraint, dict) and constraint.get("type") == "filterByClassification"
-
-    def get_handler(self, constraint: Any) -> Callable[[Any], bool]:
+    def get_handlers(self, constraint: Any) -> Sequence[ScopedHandler]:
+        if not isinstance(constraint, dict) or constraint.get("type") != "filterByClassification":
+            return ()
         max_level = constraint.get("maxLevel", "PUBLIC")
         max_rank = _CLASSIFICATION_LEVELS.get(max_level, 0)
 
-        def predicate(element: Any) -> bool:
-            if not isinstance(element, dict):
-                return False
-            element_level = element.get("classification")
-            element_rank = _CLASSIFICATION_LEVELS.get(element_level)
-            if element_rank is None:
-                log.warning(
-                    "[FILTER] Element excluded: unknown classification",
-                    classification=element_level,
-                    handler="ClassificationFilterHandler",
-                )
-                return False
-            allowed = element_rank <= max_rank
-            if not allowed:
-                log.info(
-                    "[FILTER] Excluded %s element (max: %s)",
-                    element_level,
-                    max_level,
-                    handler="ClassificationFilterHandler",
-                )
-            return allowed
+        def handler(value: Any) -> Any:
+            if not isinstance(value, list):
+                return value
+            kept: list[Any] = []
+            for element in value:
+                if not isinstance(element, dict):
+                    continue
+                element_level = element.get("classification")
+                element_rank = _CLASSIFICATION_LEVELS.get(element_level)
+                if element_rank is None:
+                    log.warning(
+                        "[FILTER] Element excluded: unknown classification",
+                        classification=element_level,
+                        handler="ClassificationFilterHandler",
+                    )
+                    continue
+                if element_rank <= max_rank:
+                    kept.append(element)
+                else:
+                    log.info(
+                        "[FILTER] Excluded %s element (max: %s)",
+                        element_level, max_level,
+                        handler="ClassificationFilterHandler",
+                    )
+            return kept
 
-        return predicate
+        return (ScopedHandler(signal=OUTPUT, priority=10, shape="mapper", handler=handler),)
