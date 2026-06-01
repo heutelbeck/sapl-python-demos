@@ -348,23 +348,23 @@ else
     fail "SSE /api/streaming/heartbeat/till-denied" "no ACCESS_DENIED in ${SSE_TIMEOUT}s"
 fi
 
-# -- drop-while-denied: must see at least one heartbeat (SUSPEND windows are silent) --
-do_sse "/api/streaming/heartbeat/drop-while-denied" "$SSE_TIMEOUT"
+# -- silent-suspending: must see at least one heartbeat (SUSPEND windows are silent) --
+do_sse "/api/streaming/heartbeat/silent-suspending" "$SSE_TIMEOUT"
 has_seq=$(echo "$BODY" | grep -c '"seq"' || true)
 if [[ "$has_seq" -ge 1 ]]; then
-    pass "SSE /api/streaming/heartbeat/drop-while-denied -- heartbeats observed during PERMIT phase"
+    pass "SSE /api/streaming/heartbeat/silent-suspending -- heartbeats observed during PERMIT phase"
 else
-    fail "SSE /api/streaming/heartbeat/drop-while-denied" "no heartbeats in ${SSE_TIMEOUT}s"
+    fail "SSE /api/streaming/heartbeat/silent-suspending" "no heartbeats in ${SSE_TIMEOUT}s"
 fi
 
-# -- recoverable: must see at least one heartbeat AND at least one boundary signal --
-do_sse "/api/streaming/heartbeat/recoverable" "$SSE_TIMEOUT"
+# -- observed-suspending: must see at least one heartbeat AND at least one boundary signal --
+do_sse "/api/streaming/heartbeat/observed-suspending" "$SSE_TIMEOUT"
 has_seq=$(echo "$BODY" | grep -c '"seq"' || true)
 has_boundary=$(echo "$BODY" | grep -cE 'ACCESS_(SUSPENDED|RESTORED)' || true)
 if [[ "$has_seq" -ge 1 && "$has_boundary" -ge 1 ]]; then
-    pass "SSE /api/streaming/heartbeat/recoverable -- heartbeats and at least one boundary signal observed"
+    pass "SSE /api/streaming/heartbeat/observed-suspending -- heartbeats and at least one boundary signal observed"
 else
-    fail "SSE /api/streaming/heartbeat/recoverable" "seq=$has_seq boundary=$has_boundary"
+    fail "SSE /api/streaming/heartbeat/observed-suspending" "seq=$has_seq boundary=$has_boundary"
 fi
 
 # ============================================================

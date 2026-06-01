@@ -1,6 +1,0 @@
-policy "streaming-heartbeat-suspendable-suspend"
-suspend
-  action == "stream:heartbeat";
-  resource == "heartbeat-suspendable";
-  var second = time.secondOf(<time.now>);
-  second >= 20 && second < 40;

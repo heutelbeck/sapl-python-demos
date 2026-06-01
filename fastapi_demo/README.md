@@ -37,14 +37,10 @@ curl -s http://localhost:3000/api/patient/P-001 | python3 -m json.tool
 # SSN blackened across a list (PostEnforce)
 curl -s http://localhost:3000/api/patients | python3 -m json.tool
 
-# Blacken action only (dedicated content-filter endpoint)
-curl -s http://localhost:3000/api/content-filter/blacken | python3 -m json.tool
+# Blacken action only
+curl -s http://localhost:3000/api/constraints/patient | python3 -m json.tool
 
 # Blacken + delete + replace combined
-curl -s http://localhost:3000/api/content-filter/all-actions | python3 -m json.tool
-
-# Same combined filter via constraint router
-curl -s http://localhost:3000/api/constraints/patient | python3 -m json.tool
 curl -s http://localhost:3000/api/constraints/patient-full | python3 -m json.tool
 ```
 
@@ -93,17 +89,18 @@ curl -s -X POST 'http://localhost:3000/api/transfer?amount=3000' | python3 -m js
 
 ### Streaming Authorization (SSE)
 
-The policy cycles PERMIT/DENY based on the current second: 0-19 permit, 20-39 deny, 40-59 permit.
+The policy cycles on the current second: 0-19 permit, 20-39 closed, 40-59 permit. In the
+closed window the `stream:terminate` action is denied and `stream:suspend` is suspended.
 
 ```bash
 # Terminates permanently on first DENY
-curl -N http://localhost:3000/api/stream/heartbeat
+curl -N http://localhost:3000/api/streaming/heartbeat/till-denied
 
-# Silently drops events during DENY, resumes on PERMIT
-curl -N http://localhost:3000/api/stream/data
+# Silently drops events while suspended, resumes on PERMIT
+curl -N http://localhost:3000/api/streaming/heartbeat/silent-suspending
 
-# Sends ACCESS_SUSPENDED / ACCESS_RESTORED signals on transitions
-curl -N http://localhost:3000/api/stream/recoverable
+# Sends ACCESS_SUSPENDED / ACCESS_RESTORED frames on transitions
+curl -N http://localhost:3000/api/streaming/heartbeat/observed-suspending
 ```
 
 ### Export Data (JWT Required)
@@ -126,10 +123,10 @@ The only endpoint requiring authentication. The policy uses `<jwt.token>` to ext
 TOKEN=$(curl -s -X POST 'http://localhost:8080/realms/demo/protocol/openid-connect/token' -H 'Content-Type: application/x-www-form-urlencoded' -d 'grant_type=password' -d 'client_id=demo-app' -d 'client_secret=dev-secret' -d 'username=clinician1' -d 'password=password' | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
 
 # Permitted: clinician1 (pilotId=1) accessing pilot 1 data
-curl -s -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/export/1/3 | python3 -m json.tool
+curl -s -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/exportData/1/1 | python3 -m json.tool
 
 # Denied: clinician1 (pilotId=1) accessing pilot 2 data
-curl -s -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/export/2/1 | python3 -m json.tool
+curl -s -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/exportData/2/1 | python3 -m json.tool
 ```
 
 ## Reference
@@ -141,7 +138,7 @@ curl -s -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/export/2/1 |
 | GET /api/hello | Manual | None | `pdp_client.decide_once()` |
 | GET /api/patient/{id} | `pre_enforce` | None | Blacken SSN |
 | GET /api/patients | `post_enforce` | None | List patients, blacken SSN |
-| GET /api/export/{p}/{s} | `pre_enforce` | JWT | Custom resource builder, ABAC |
+| GET /api/exportData/{p}/{s} | `pre_enforce` | JWT | Custom resource builder, ABAC |
 | POST /api/transfer | `pre_enforce` | None | Argument manipulation (cap amount) |
 | GET /api/constraints/patient | `pre_enforce` | None | Blacken SSN |
 | GET /api/constraints/patient-full | `pre_enforce` | None | Blacken + delete + replace |
@@ -156,11 +153,9 @@ curl -s -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/export/2/1 |
 | GET /api/constraints/advised | `pre_enforce` | None | Advice (best-effort) |
 | GET /api/constraints/record/{id} | `post_enforce` | None | Return value in subscription |
 | GET /api/constraints/unhandled | `pre_enforce` | None | Unhandled obligation (fail-fast) |
-| GET /api/content-filter/blacken | `pre_enforce` | None | Blacken action only |
-| GET /api/content-filter/all-actions | `pre_enforce` | None | Blacken + delete + replace |
-| SSE /api/stream/heartbeat | `stream_enforce` | None | Terminal denial on DENY |
-| SSE /api/stream/data | `stream_enforce` (`pause_rap_during_suspend=True`) | None | Silent drops during SUSPEND |
-| SSE /api/stream/recoverable | `stream_enforce` (`signal_transitions=True`, `pause_rap_during_suspend=True`) | None | In-band SUSPEND/RESTORED signals |
+| SSE /api/streaming/heartbeat/till-denied | `stream_enforce` | None | Terminal denial on DENY |
+| SSE /api/streaming/heartbeat/silent-suspending | `stream_enforce` (`pause_rap_during_suspend=True`) | None | Silent drops during SUSPEND |
+| SSE /api/streaming/heartbeat/observed-suspending | `stream_enforce` (`signal_transitions=True`, `pause_rap_during_suspend=True`) | None | In-band SUSPEND/RESTORED signals |
 
 ### Constraint Handler Reference
 

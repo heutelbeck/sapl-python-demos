@@ -1,18 +1,16 @@
 """SSE streaming enforcement endpoints.
 
-All three endpoints use the same `@stream_enforce` decorator with different
-flag combinations:
+The three endpoints share resource `heartbeat` and differ only by action and the
+`signal_transitions` flag:
 
-  * till-denied            -> defaults; DENY terminates with ACCESS_DENIED.
-  * drop-while-denied      -> pause_rap_during_suspend=True; SUSPEND drops
-                              items silently; PERMIT resumes.
-  * recoverable            -> signal_transitions=True + pause_rap_during_suspend=True;
-                              SUSPEND emits ACCESS_SUSPENDED, return to
-                              Permitting emits ACCESS_RESTORED.
+  * till-denied         -> action stream:terminate; DENY terminates with ACCESS_DENIED.
+  * silent-suspending   -> action stream:suspend; SUSPEND drops items silently; PERMIT resumes.
+  * observed-suspending -> action stream:suspend + signal_transitions=True; SUSPEND emits
+                           ACCESS_SUSPENDED, return to Permitting emits ACCESS_RESTORED.
 
-The cycle PERMIT -> SUSPEND -> PERMIT is driven by the policies
-`streaming-heartbeat-till-denied.sapl` (emits DENY in the window) and
-`streaming-heartbeat-suspendable.sapl` (emits SUSPEND in the window).
+The cycle PERMIT -> (DENY | SUSPEND) -> PERMIT is driven by the single policy
+`streaming-heartbeat-time-based.sapl`, which permits in [0, 20) and [40, 60), denies
+`stream:terminate` in [20, 40), and suspends `stream:suspend` in [20, 40).
 """
 
 from __future__ import annotations
@@ -42,7 +40,7 @@ async def _heartbeat_source() -> AsyncIterator[dict[str, Any]]:
 
 
 @streaming_bp.route("/heartbeat/till-denied")
-@stream_enforce(action="stream:heartbeat", resource="heartbeat")
+@stream_enforce(action="stream:terminate", resource="heartbeat")
 def heartbeat_till_denied():
     """DENY terminates the stream with an `ACCESS_DENIED` SSE frame.
 
@@ -51,30 +49,30 @@ def heartbeat_till_denied():
     return _heartbeat_source()
 
 
-@streaming_bp.route("/heartbeat/drop-while-denied")
+@streaming_bp.route("/heartbeat/silent-suspending")
 @stream_enforce(
-    action="stream:heartbeat",
-    resource="heartbeat-suspendable",
+    action="stream:suspend",
+    resource="heartbeat",
     pause_rap_during_suspend=True,
 )
-def heartbeat_drop_while_denied():
-    """SUSPEND drops items silently; PERMIT resumes the stream.
+def heartbeat_silent_suspending():
+    """SUSPEND drops items silently; PERMIT resumes the stream. No boundary frames.
 
-    Connect with: curl -N http://localhost:3000/api/streaming/heartbeat/drop-while-denied
+    Connect with: curl -N http://localhost:3000/api/streaming/heartbeat/silent-suspending
     """
     return _heartbeat_source()
 
 
-@streaming_bp.route("/heartbeat/recoverable")
+@streaming_bp.route("/heartbeat/observed-suspending")
 @stream_enforce(
-    action="stream:heartbeat",
-    resource="heartbeat-suspendable",
+    action="stream:suspend",
+    resource="heartbeat",
     signal_transitions=True,
     pause_rap_during_suspend=True,
 )
-def heartbeat_recoverable():
+def heartbeat_observed_suspending():
     """Boundary signals: `ACCESS_SUSPENDED` on enter Suspended, `ACCESS_RESTORED` on resume.
 
-    Connect with: curl -N http://localhost:3000/api/streaming/heartbeat/recoverable
+    Connect with: curl -N http://localhost:3000/api/streaming/heartbeat/observed-suspending
     """
     return _heartbeat_source()

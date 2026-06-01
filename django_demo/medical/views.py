@@ -310,28 +310,28 @@ async def _heartbeat_source():
         await asyncio.sleep(2)
 
 
-@stream_enforce(action="stream:heartbeat", resource="heartbeat")
+@stream_enforce(action="stream:terminate", resource="heartbeat")
 async def heartbeat_till_denied(request: HttpRequest):
     """DENY terminates the stream with an ACCESS_DENIED SSE frame."""
     return _heartbeat_source()
 
 
 @stream_enforce(
-    action="stream:heartbeat",
-    resource="heartbeat-suspendable",
+    action="stream:suspend",
+    resource="heartbeat",
     pause_rap_during_suspend=True,
 )
-async def heartbeat_drop_while_denied(request: HttpRequest):
-    """SUSPEND drops items silently; PERMIT resumes the stream."""
+async def heartbeat_silent_suspending(request: HttpRequest):
+    """SUSPEND drops items silently; PERMIT resumes the stream. No boundary frames."""
     return _heartbeat_source()
 
 
 @stream_enforce(
-    action="stream:heartbeat",
-    resource="heartbeat-suspendable",
+    action="stream:suspend",
+    resource="heartbeat",
     signal_transitions=True,
     pause_rap_during_suspend=True,
 )
-async def heartbeat_recoverable(request: HttpRequest):
+async def heartbeat_observed_suspending(request: HttpRequest):
     """Boundary signals: ACCESS_SUSPENDED on enter Suspended, ACCESS_RESTORED on resume."""
     return _heartbeat_source()

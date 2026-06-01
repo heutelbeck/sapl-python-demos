@@ -1,14 +1,12 @@
 """SSE streaming enforcement endpoints (Tornado).
 
-All three endpoints use the same `@stream_enforce` decorator with different
-flag combinations:
+The three endpoints share resource `heartbeat` and differ only by action and the
+`signal_transitions` flag:
 
-  * till-denied            -> defaults; DENY terminates with ACCESS_DENIED.
-  * drop-while-denied      -> pause_rap_during_suspend=True; SUSPEND drops items
-                              silently; PERMIT resumes.
-  * recoverable            -> signal_transitions=True + pause_rap_during_suspend=True;
-                              SUSPEND emits ACCESS_SUSPENDED, return to Permitting
-                              emits ACCESS_RESTORED.
+  * till-denied         -> action stream:terminate; DENY terminates with ACCESS_DENIED.
+  * silent-suspending   -> action stream:suspend; SUSPEND drops items silently; PERMIT resumes.
+  * observed-suspending -> action stream:suspend + signal_transitions=True; SUSPEND emits
+                           ACCESS_SUSPENDED, return to Permitting emits ACCESS_RESTORED.
 """
 
 from __future__ import annotations
@@ -36,25 +34,25 @@ async def _heartbeat_source() -> AsyncIterator[dict[str, Any]]:
 
 
 class HeartbeatTillDeniedHandler(tornado.web.RequestHandler):
-    @stream_enforce(action="stream:heartbeat", resource="heartbeat")
+    @stream_enforce(action="stream:terminate", resource="heartbeat")
     async def get(self):
         return _heartbeat_source()
 
 
-class HeartbeatDropWhileDeniedHandler(tornado.web.RequestHandler):
+class HeartbeatSilentSuspendingHandler(tornado.web.RequestHandler):
     @stream_enforce(
-        action="stream:heartbeat",
-        resource="heartbeat-suspendable",
+        action="stream:suspend",
+        resource="heartbeat",
         pause_rap_during_suspend=True,
     )
     async def get(self):
         return _heartbeat_source()
 
 
-class HeartbeatRecoverableHandler(tornado.web.RequestHandler):
+class HeartbeatObservedSuspendingHandler(tornado.web.RequestHandler):
     @stream_enforce(
-        action="stream:heartbeat",
-        resource="heartbeat-suspendable",
+        action="stream:suspend",
+        resource="heartbeat",
         signal_transitions=True,
         pause_rap_during_suspend=True,
     )
@@ -64,6 +62,6 @@ class HeartbeatRecoverableHandler(tornado.web.RequestHandler):
 
 StreamingHandlers = [
     (r"/api/streaming/heartbeat/till-denied", HeartbeatTillDeniedHandler),
-    (r"/api/streaming/heartbeat/drop-while-denied", HeartbeatDropWhileDeniedHandler),
-    (r"/api/streaming/heartbeat/recoverable", HeartbeatRecoverableHandler),
+    (r"/api/streaming/heartbeat/silent-suspending", HeartbeatSilentSuspendingHandler),
+    (r"/api/streaming/heartbeat/observed-suspending", HeartbeatObservedSuspendingHandler),
 ]

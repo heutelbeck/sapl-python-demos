@@ -87,17 +87,18 @@ curl -s -X POST 'http://localhost:3000/api/transfer?amount=3000' | python3 -m js
 
 ### Streaming Authorization (SSE)
 
-The policy cycles PERMIT/DENY based on the current second: 0-19 permit, 20-39 deny, 40-59 permit.
+The policy cycles on the current second: 0-19 permit, 20-39 closed, 40-59 permit. In the
+closed window the `stream:terminate` action is denied and `stream:suspend` is suspended.
 
 ```bash
 # Terminates permanently on first DENY
 curl -N http://localhost:3000/api/streaming/heartbeat/till-denied
 
-# Silently drops events during DENY, resumes on PERMIT
-curl -N http://localhost:3000/api/streaming/heartbeat/drop-while-denied
+# Silently drops events while suspended, resumes on PERMIT
+curl -N http://localhost:3000/api/streaming/heartbeat/silent-suspending
 
-# Sends ACCESS_SUSPENDED / ACCESS_RESTORED signals on transitions
-curl -N http://localhost:3000/api/streaming/heartbeat/recoverable
+# Sends ACCESS_SUSPENDED / ACCESS_RESTORED frames on transitions
+curl -N http://localhost:3000/api/streaming/heartbeat/observed-suspending
 ```
 
 ### Export Data (JWT Required)
@@ -151,8 +152,8 @@ curl -s -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/exportData/2
 | GET /api/constraints/record/{id} | `post_enforce` | None | Return value in subscription |
 | GET /api/constraints/unhandled | `pre_enforce` | None | Unhandled obligation (fail-fast) |
 | SSE /api/streaming/heartbeat/till-denied | `stream_enforce` | None | Terminal denial on DENY |
-| SSE /api/streaming/heartbeat/drop-while-denied | `stream_enforce` (`pause_rap_during_suspend=True`) | None | Silent drops during SUSPEND |
-| SSE /api/streaming/heartbeat/recoverable | `stream_enforce` (`signal_transitions=True`, `pause_rap_during_suspend=True`) | None | In-band SUSPEND/RESTORED signals |
+| SSE /api/streaming/heartbeat/silent-suspending | `stream_enforce` (`pause_rap_during_suspend=True`) | None | Silent drops during SUSPEND |
+| SSE /api/streaming/heartbeat/observed-suspending | `stream_enforce` (`signal_transitions=True`, `pause_rap_during_suspend=True`) | None | In-band SUSPEND/RESTORED signals |
 
 ### Constraint Handler Reference
 

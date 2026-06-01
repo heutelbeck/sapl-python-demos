@@ -1,18 +1,16 @@
 """SSE streaming enforcement endpoints.
 
-All three endpoints use the same `@stream_enforce` decorator with different
-flag combinations:
+The three endpoints share resource `heartbeat` and differ only by action and the
+`signal_transitions` flag:
 
-  * till-denied            -> defaults; DENY terminates with ACCESS_DENIED.
-  * drop-while-denied      -> pause_rap_during_suspend=True; SUSPEND drops items
-                              silently; PERMIT resumes.
-  * recoverable            -> signal_transitions=True + pause_rap_during_suspend=True;
-                              SUSPEND emits ACCESS_SUSPENDED, return to Permitting
-                              emits ACCESS_RESTORED.
+  * till-denied         -> action stream:terminate; DENY terminates with ACCESS_DENIED.
+  * silent-suspending   -> action stream:suspend; SUSPEND drops items silently; PERMIT resumes.
+  * observed-suspending -> action stream:suspend + signal_transitions=True; SUSPEND emits
+                           ACCESS_SUSPENDED, return to Permitting emits ACCESS_RESTORED.
 
-The cycle PERMIT -> SUSPEND -> PERMIT is driven by the policies
-`streaming-heartbeat-till-denied.sapl` (DENY in the window) and
-`streaming-heartbeat-suspendable-*.sapl` (PERMIT and SUSPEND alternating).
+The cycle PERMIT -> (DENY | SUSPEND) -> PERMIT is driven by the single policy
+`streaming-heartbeat-time-based.sapl`, which permits in [0, 20) and [40, 60), denies
+`stream:terminate` in [20, 40), and suspends `stream:suspend` in [20, 40).
 """
 
 from __future__ import annotations
@@ -42,30 +40,30 @@ async def _heartbeat_source() -> AsyncIterator[dict[str, Any]]:
 
 
 @router.get("/heartbeat/till-denied")
-@stream_enforce(action="stream:heartbeat", resource="heartbeat")
+@stream_enforce(action="stream:terminate", resource="heartbeat")
 async def heartbeat_till_denied(request: Request):
     """DENY terminates the stream with an `ACCESS_DENIED` SSE frame."""
     return _heartbeat_source()
 
 
-@router.get("/heartbeat/drop-while-denied")
+@router.get("/heartbeat/silent-suspending")
 @stream_enforce(
-    action="stream:heartbeat",
-    resource="heartbeat-suspendable",
+    action="stream:suspend",
+    resource="heartbeat",
     pause_rap_during_suspend=True,
 )
-async def heartbeat_drop_while_denied(request: Request):
-    """SUSPEND drops items silently; PERMIT resumes the stream."""
+async def heartbeat_silent_suspending(request: Request):
+    """SUSPEND drops items silently; PERMIT resumes the stream. No boundary frames."""
     return _heartbeat_source()
 
 
-@router.get("/heartbeat/recoverable")
+@router.get("/heartbeat/observed-suspending")
 @stream_enforce(
-    action="stream:heartbeat",
-    resource="heartbeat-suspendable",
+    action="stream:suspend",
+    resource="heartbeat",
     signal_transitions=True,
     pause_rap_during_suspend=True,
 )
-async def heartbeat_recoverable(request: Request):
+async def heartbeat_observed_suspending(request: Request):
     """Boundary signals: ACCESS_SUSPENDED on enter Suspended, ACCESS_RESTORED on resume."""
     return _heartbeat_source()
