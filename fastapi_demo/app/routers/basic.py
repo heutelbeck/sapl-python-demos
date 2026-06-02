@@ -15,7 +15,7 @@ from typing import Any
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
-from sapl_base.types import AuthorizationDecision, AuthorizationSubscription, Decision
+from sapl_base.types import AuthorizationSubscription, Decision
 from sapl_fastapi.decorators import pre_enforce, post_enforce
 
 from app.auth import get_current_user, get_optional_user
@@ -105,36 +105,6 @@ async def get_export_data(
     clinician1 (pilotId=1) can access /api/export/1/* but not /api/export/2/*
     """
     log.info("exportData", pilot_id=pilot_id, sequence_id=sequence_id)
-    return {"pilotId": pilot_id, "sequenceId": sequence_id, "data": "export-payload"}
-
-
-def _handle_export_deny(decision: AuthorizationDecision) -> dict[str, Any]:
-    """Custom deny handler for exportData2 -- returns structured JSON instead of 403."""
-    return {
-        "error": "access_denied",
-        "decision": decision.decision.value,
-    }
-
-
-@router.get("/exportData2/{pilot_id}/{sequence_id}")
-@pre_enforce(
-    action="exportData",
-    resource=lambda ctx: {"pilotId": ctx.params.get("pilot_id", ""), "sequenceId": ctx.params.get("sequence_id", "")},
-    secrets=lambda ctx: {"jwt": getattr(ctx.request.state, "token", None)} if ctx.request and getattr(ctx.request.state, "token", None) else None,
-    on_deny=_handle_export_deny,
-)
-async def get_export_data2(
-    request: Request,
-    pilot_id: str,
-    sequence_id: str,
-    user: dict[str, Any] = Depends(get_current_user),
-) -> dict[str, Any]:
-    """PreEnforce with onDeny callback.
-
-    Same policy as exportData, but instead of 403 on deny, returns structured
-    JSON with the decision details.
-    """
-    log.info("exportData2", pilot_id=pilot_id, sequence_id=sequence_id)
     return {"pilotId": pilot_id, "sequenceId": sequence_id, "data": "export-payload"}
 
 

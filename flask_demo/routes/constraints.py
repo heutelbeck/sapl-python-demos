@@ -13,7 +13,6 @@ from __future__ import annotations
 import structlog
 from flask import Blueprint, jsonify
 
-from sapl_base.types import AuthorizationDecision
 from sapl_flask.decorators import pre_enforce, post_enforce
 
 from models import DOCUMENTS
@@ -262,22 +261,15 @@ def get_unhandled():
     return {"data": "you should not see this"}
 
 
-def _handle_audit_deny(decision: AuthorizationDecision):
-    """Custom deny handler for audit endpoint."""
-    return {"denied": True, "reason": decision.decision.value}
-
-
 @constraints_bp.route("/audit")
 @post_enforce(
     action="readAudit",
     resource="audit",
-    on_deny=_handle_audit_deny,
 )
 def get_audit():
-    """PostEnforce with onDeny callback.
+    """PostEnforce returning audit trail entries.
 
-    Returns audit trail entries. If denied, returns structured JSON
-    instead of 403.
+    Returns audit trail entries. On deny the wrapper returns 403.
     """
     return {
         "entries": [{"action": "login", "timestamp": "2026-01-01T00:00:00Z"}],

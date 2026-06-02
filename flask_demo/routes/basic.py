@@ -15,7 +15,7 @@ import asyncio
 import structlog
 from flask import Blueprint, abort, g, jsonify, request
 
-from sapl_base.types import AuthorizationDecision, AuthorizationSubscription, Decision
+from sapl_base.types import AuthorizationSubscription, Decision
 from sapl_flask.decorators import pre_enforce, post_enforce
 from sapl_flask.extension import get_sapl_extension
 
@@ -96,32 +96,6 @@ def get_export_data(pilot_id: str, sequence_id: str):
     """
     get_current_user()
     log.info("exportData", pilot_id=pilot_id, sequence_id=sequence_id)
-    return {"pilotId": pilot_id, "sequenceId": sequence_id, "data": "export-payload"}
-
-
-def _handle_export_deny(decision: AuthorizationDecision):
-    """Custom deny handler for exportData2 -- returns structured JSON instead of 403."""
-    return {
-        "error": "access_denied",
-        "decision": decision.decision.value,
-    }
-
-
-@basic_bp.route("/exportData2/<pilot_id>/<sequence_id>")
-@pre_enforce(
-    action="exportData",
-    resource=lambda ctx: {"pilotId": ctx.params.get("pilot_id", ""), "sequenceId": ctx.params.get("sequence_id", "")},
-    secrets=lambda ctx: {"jwt": g.token} if hasattr(g, "token") else None,
-    on_deny=_handle_export_deny,
-)
-def get_export_data2(pilot_id: str, sequence_id: str):
-    """PreEnforce with onDeny callback.
-
-    Same policy as exportData, but instead of 403 on deny, returns structured
-    JSON with the decision details.
-    """
-    get_current_user()
-    log.info("exportData2", pilot_id=pilot_id, sequence_id=sequence_id)
     return {"pilotId": pilot_id, "sequenceId": sequence_id, "data": "export-payload"}
 
 

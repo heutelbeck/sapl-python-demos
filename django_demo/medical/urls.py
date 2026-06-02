@@ -20,7 +20,6 @@ urlpatterns = [
     path("patient/<str:patient_id>", views.get_patient),
     path("patients", views.get_patients),
     path("exportData/<str:pilot_id>/<str:sequence_id>", views.get_export_data),
-    path("exportData2/<str:pilot_id>/<str:sequence_id>", views.get_export_data2),
     path("transfer", views.transfer),
 
     # Constraint handler demos (includes content filtering)

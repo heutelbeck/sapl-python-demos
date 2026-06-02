@@ -15,7 +15,6 @@ from typing import Any
 import structlog
 from fastapi import APIRouter, Request
 
-from sapl_base.types import AuthorizationDecision
 from sapl_fastapi.decorators import pre_enforce, post_enforce
 
 from app.models import DOCUMENTS
@@ -261,22 +260,15 @@ async def get_unhandled(request: Request) -> dict[str, Any]:
     return {"data": "you should not see this"}
 
 
-def _handle_audit_deny(decision: AuthorizationDecision) -> dict[str, Any]:
-    """Custom deny handler for audit endpoint."""
-    return {"denied": True, "reason": decision.decision.value}
-
-
 @router.get("/audit")
 @post_enforce(
     action="readAudit",
     resource="audit",
-    on_deny=_handle_audit_deny,
 )
 async def get_audit(request: Request) -> dict[str, Any]:
-    """PostEnforce with onDeny callback.
+    """PostEnforce on audit trail.
 
-    Returns audit trail entries. If denied, returns structured JSON
-    instead of 403.
+    Returns audit trail entries. Returns 403 on deny.
     """
     return {
         "entries": [{"action": "login", "timestamp": "2026-01-01T00:00:00Z"}],

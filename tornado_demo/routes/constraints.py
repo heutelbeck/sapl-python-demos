@@ -15,7 +15,6 @@ import json
 import structlog
 import tornado.web
 
-from sapl_base.types import AuthorizationDecision
 from sapl_tornado.decorators import post_enforce, pre_enforce
 
 from models import DOCUMENTS
@@ -176,15 +175,10 @@ class UnhandledHandler(tornado.web.RequestHandler):
         return {"data": "you should not see this"}
 
 
-def _handle_audit_deny(decision: AuthorizationDecision):
-    """Custom deny handler for audit endpoint."""
-    return {"denied": True, "reason": decision.decision.value}
-
-
 class AuditHandler(tornado.web.RequestHandler):
-    """PostEnforce with onDeny callback."""
+    """PostEnforce returning the default 403 on deny."""
 
-    @post_enforce(action="readAudit", resource="audit", on_deny=_handle_audit_deny)
+    @post_enforce(action="readAudit", resource="audit")
     async def get(self):
         return {
             "entries": [{"action": "login", "timestamp": "2026-01-01T00:00:00Z"}],

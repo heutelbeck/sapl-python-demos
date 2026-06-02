@@ -15,7 +15,7 @@ from typing import Any
 import structlog
 from django.http import HttpRequest, JsonResponse
 
-from sapl_base.types import AuthorizationDecision, AuthorizationSubscription, Decision
+from sapl_base.types import AuthorizationSubscription, Decision
 from sapl_django.config import get_pdp_client
 from sapl_django.decorators import (
     post_enforce,
@@ -92,31 +92,6 @@ async def get_export_data(request: HttpRequest, pilot_id: str, sequence_id: str)
     """
     await get_jwt_claims(request)
     log.info("exportData", pilot_id=pilot_id, sequence_id=sequence_id)
-    return {"pilotId": pilot_id, "sequenceId": sequence_id, "data": "export-payload"}
-
-
-def _handle_export_deny(decision: AuthorizationDecision):
-    """Custom deny handler for exportData2 -- returns structured JSON instead of 403."""
-    return {
-        "error": "access_denied",
-        "decision": decision.decision.value,
-    }
-
-
-@pre_enforce(
-    action="exportData",
-    resource=lambda ctx: {"pilotId": ctx.params.get("pilot_id", ""), "sequenceId": ctx.params.get("sequence_id", "")},
-    secrets=lambda ctx: {"jwt": getattr(ctx.request, "sapl_token", None)} if ctx.request and getattr(ctx.request, "sapl_token", None) else None,
-    on_deny=_handle_export_deny,
-)
-async def get_export_data2(request: HttpRequest, pilot_id: str, sequence_id: str):
-    """PreEnforce with onDeny callback.
-
-    Same policy as exportData, but instead of 403 on deny, returns structured
-    JSON with the decision details.
-    """
-    await get_jwt_claims(request)
-    log.info("exportData2", pilot_id=pilot_id, sequence_id=sequence_id)
     return {"pilotId": pilot_id, "sequenceId": sequence_id, "data": "export-payload"}
 
 
@@ -280,21 +255,14 @@ async def get_unhandled(request: HttpRequest):
     return {"data": "you should not see this"}
 
 
-def _handle_audit_deny(decision: AuthorizationDecision):
-    """Custom deny handler for audit endpoint."""
-    return {"denied": True, "reason": decision.decision.value}
-
-
 @post_enforce(
     action="readAudit",
     resource="audit",
-    on_deny=_handle_audit_deny,
 )
 async def get_audit(request: HttpRequest):
-    """PostEnforce with onDeny callback.
+    """PostEnforce audit endpoint.
 
-    Returns audit trail entries. If denied, returns structured JSON
-    instead of 403.
+    Returns audit trail entries; returns 403 on deny.
     """
     return {
         "entries": [{"action": "login", "timestamp": "2026-01-01T00:00:00Z"}],

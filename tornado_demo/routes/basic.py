@@ -91,26 +91,6 @@ class ExportDataHandler(tornado.web.RequestHandler):
         return {"pilotId": pilot_id, "sequenceId": sequence_id, "data": "export-payload"}
 
 
-def _handle_export_deny(decision: AuthorizationDecision):
-    """Custom deny handler for exportData2 -- returns structured JSON instead of 403."""
-    return {"error": "access_denied", "decision": decision.decision.value}
-
-
-class ExportData2Handler(tornado.web.RequestHandler):
-    """PreEnforce with onDeny callback."""
-
-    @pre_enforce(
-        action="exportData",
-        resource=lambda ctx: {"pilotId": ctx.params.get("pilot_id", ""), "sequenceId": ctx.params.get("sequence_id", "")},
-        secrets=lambda ctx: _extract_bearer_secret(ctx),
-        on_deny=_handle_export_deny,
-    )
-    async def get(self, pilot_id, sequence_id):
-        get_current_user(self)
-        log.info("exportData2", pilot_id=pilot_id, sequence_id=sequence_id)
-        return {"pilotId": pilot_id, "sequenceId": sequence_id, "data": "export-payload"}
-
-
 class TransferHandler(tornado.web.RequestHandler):
     """Thin route that parses query params and delegates to the enforced function."""
 
@@ -133,6 +113,5 @@ BasicHandlers = [
     (r"/api/patient/(?P<patient_id>[^/]+)", PatientHandler),
     (r"/api/patients", PatientsHandler),
     (r"/api/exportData/(?P<pilot_id>[^/]+)/(?P<sequence_id>[^/]+)", ExportDataHandler),
-    (r"/api/exportData2/(?P<pilot_id>[^/]+)/(?P<sequence_id>[^/]+)", ExportData2Handler),
     (r"/api/transfer", TransferHandler),
 ]
