@@ -453,7 +453,7 @@ def main():
     # Phase 3: Wait for services
     info("Phase 3: Waiting for services")
     wait_for(f"{KEYCLOAK_URL}/realms/mcp", 60, "Keycloak", expect_200=True)
-    wait_for("http://localhost:8443", 30, "SAPL PDP")
+    wait_for("http://localhost:8443", 120, "SAPL PDP")
 
     # Phase 4: Start analytics server
     info("Phase 4: Starting analytics server")

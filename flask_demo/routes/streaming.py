@@ -6,7 +6,7 @@ The three endpoints share resource `heartbeat` and differ only by action and the
   * till-denied         -> action stream:terminate; DENY terminates with ACCESS_DENIED.
   * silent-suspending   -> action stream:suspend; SUSPEND drops items silently; PERMIT resumes.
   * observed-suspending -> action stream:suspend + signal_transitions=True; SUSPEND emits
-                           ACCESS_SUSPENDED, return to Permitting emits ACCESS_RESTORED.
+                           ACCESS_SUSPENDED, return to Permitting emits ACCESS_GRANTED.
 
 The cycle PERMIT -> (DENY | SUSPEND) -> PERMIT is driven by the single policy
 `streaming-heartbeat-time-based.sapl`, which permits in [0, 20) and [40, 60), denies
@@ -71,7 +71,7 @@ def heartbeat_silent_suspending():
     pause_rap_during_suspend=True,
 )
 def heartbeat_observed_suspending():
-    """Boundary signals: `ACCESS_SUSPENDED` on enter Suspended, `ACCESS_RESTORED` on resume.
+    """Boundary signals: `ACCESS_SUSPENDED` on enter Suspended, `ACCESS_GRANTED` on resume.
 
     Connect with: curl -N http://localhost:3000/api/streaming/heartbeat/observed-suspending
     """

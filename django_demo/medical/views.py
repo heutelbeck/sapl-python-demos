@@ -301,5 +301,5 @@ async def heartbeat_silent_suspending(request: HttpRequest):
     pause_rap_during_suspend=True,
 )
 async def heartbeat_observed_suspending(request: HttpRequest):
-    """Boundary signals: ACCESS_SUSPENDED on enter Suspended, ACCESS_RESTORED on resume."""
+    """Boundary signals: ACCESS_SUSPENDED on enter Suspended, ACCESS_GRANTED on resume."""
     return _heartbeat_source()

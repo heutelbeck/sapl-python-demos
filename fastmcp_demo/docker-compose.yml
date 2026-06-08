@@ -11,11 +11,12 @@ services:
       - ./keycloak:/opt/keycloak/data/import:ro
 
   sapl-node:
-    image: ghcr.io/heutelbeck/sapl-node:4.0.0-SNAPSHOT
+    image: ghcr.io/heutelbeck/sapl-node:4.1.0-SNAPSHOT
     ports:
       - "8443:8443"
     environment:
       SERVER_SSL_ENABLED: "false"
+      SERVER_PORT: "8443"
       SERVER_ADDRESS: 0.0.0.0
       IO_SAPL_NODE_ALLOWNOAUTH: "true"
       IO_SAPL_PDP_EMBEDDED_PDPCONFIGTYPE: DIRECTORY

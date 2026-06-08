@@ -6,7 +6,7 @@ The three endpoints share resource `heartbeat` and differ only by action and the
   * till-denied         -> action stream:terminate; DENY terminates with ACCESS_DENIED.
   * silent-suspending   -> action stream:suspend; SUSPEND drops items silently; PERMIT resumes.
   * observed-suspending -> action stream:suspend + signal_transitions=True; SUSPEND emits
-                           ACCESS_SUSPENDED, return to Permitting emits ACCESS_RESTORED.
+                           ACCESS_SUSPENDED, return to Permitting emits ACCESS_GRANTED.
 """
 
 from __future__ import annotations

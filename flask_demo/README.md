@@ -97,7 +97,7 @@ curl -N http://localhost:3000/api/streaming/heartbeat/till-denied
 # Silently drops events while suspended, resumes on PERMIT
 curl -N http://localhost:3000/api/streaming/heartbeat/silent-suspending
 
-# Sends ACCESS_SUSPENDED / ACCESS_RESTORED frames on transitions
+# Sends ACCESS_SUSPENDED / ACCESS_GRANTED frames on transitions
 curl -N http://localhost:3000/api/streaming/heartbeat/observed-suspending
 ```
 
