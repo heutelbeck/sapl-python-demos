@@ -30,7 +30,7 @@ from app.handlers.log_stream_event import LogStreamEventHandler
 from app.handlers.notify_on_error import NotifyOnErrorHandler
 from app.handlers.redact_fields import RedactFieldsHandler
 
-from app.routers import basic, constraints, services, streaming
+from app.routers import basic, constraints, streaming
 
 log = structlog.get_logger()
 
@@ -76,7 +76,6 @@ app = FastAPI(
 app.include_router(basic.router)
 app.include_router(constraints.router)
 app.include_router(streaming.router)
-app.include_router(services.router)
 
 
 @app.exception_handler(RuntimeError)

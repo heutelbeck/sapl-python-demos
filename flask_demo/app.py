@@ -19,7 +19,6 @@ from sapl_flask.extension import SaplFlask
 from handlers import register_all_handlers
 from routes.basic import basic_bp
 from routes.constraints import constraints_bp
-from routes.services import services_bp
 from routes.streaming import streaming_bp
 
 log = structlog.get_logger()
@@ -35,8 +34,7 @@ atexit.register(sapl.close)
 
 app.register_blueprint(basic_bp, url_prefix="/api")
 app.register_blueprint(constraints_bp, url_prefix="/api/constraints")
-app.register_blueprint(streaming_bp, url_prefix="/api/streaming")
-app.register_blueprint(services_bp, url_prefix="/api/services")
+app.register_blueprint(streaming_bp)
 
 log.info("SAPL configured with all constraint handlers registered")
 

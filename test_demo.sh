@@ -367,6 +367,16 @@ else
     fail "SSE /api/streaming/heartbeat/observed-suspending" "seq=$has_seq boundary=$has_boundary"
 fi
 
+# -- service-layer streaming: the same StreamEnforce on a domain service method --
+do_sse "/api/services/streaming/heartbeat/observed-suspending" "$SSE_TIMEOUT"
+has_seq=$(echo "$BODY" | grep -c '"seq"' || true)
+has_boundary=$(echo "$BODY" | grep -cE 'ACCESS_(SUSPENDED|RESTORED)' || true)
+if [[ "$has_seq" -ge 1 && "$has_boundary" -ge 1 ]]; then
+    pass "SSE /api/services/streaming/heartbeat/observed-suspending -- service-layer streaming enforcement"
+else
+    fail "SSE /api/services/streaming/heartbeat/observed-suspending" "seq=$has_seq boundary=$has_boundary"
+fi
+
 # ============================================================
 # 5. Export (JWT) -- optional
 # ============================================================

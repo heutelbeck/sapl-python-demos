@@ -25,6 +25,8 @@ from sapl_django.decorators import (
 
 from medical.auth import get_jwt_claims
 from medical.models import DOCUMENTS, PATIENTS
+from medical.services import patient_service
+from medical.sse import sse_rendered, sse_response
 
 log = structlog.get_logger()
 
@@ -278,22 +280,25 @@ async def _heartbeat_source():
         await asyncio.sleep(2)
 
 
+@sse_rendered
 @stream_enforce(action="stream:terminate", resource="heartbeat")
 async def heartbeat_till_denied(request: HttpRequest):
-    """DENY terminates the stream with an ACCESS_DENIED SSE frame."""
+    """DENY terminates the stream with an ACCESS_DENIED frame."""
     return _heartbeat_source()
 
 
+@sse_rendered
 @stream_enforce(
     action="stream:suspend",
     resource="heartbeat",
     pause_rap_during_suspend=True,
 )
 async def heartbeat_silent_suspending(request: HttpRequest):
-    """SUSPEND drops items silently; PERMIT resumes the stream. No boundary frames."""
+    """SUSPEND drops items silently; PERMIT resumes. No boundary frames."""
     return _heartbeat_source()
 
 
+@sse_rendered
 @stream_enforce(
     action="stream:suspend",
     resource="heartbeat",
@@ -301,5 +306,46 @@ async def heartbeat_silent_suspending(request: HttpRequest):
     pause_rap_during_suspend=True,
 )
 async def heartbeat_observed_suspending(request: HttpRequest):
-    """Boundary signals: ACCESS_SUSPENDED on enter Suspended, ACCESS_GRANTED on resume."""
+    """Boundary frames: ACCESS_SUSPENDED on enter Suspended, ACCESS_GRANTED on resume."""
     return _heartbeat_source()
+
+
+# Service-layer endpoints: enforcement is on the PatientService methods, not here.
+
+
+async def service_heartbeat_observed_suspending(request: HttpRequest):
+    """Service-layer streaming: enforcement is on the PatientService method."""
+    return sse_response(patient_service.stream_heartbeat())
+
+
+async def service_list_patients(request: HttpRequest) -> JsonResponse:
+    return JsonResponse(await patient_service.list_patients(), safe=False)
+
+
+async def service_find_patient(request: HttpRequest) -> JsonResponse:
+    return JsonResponse(await patient_service.find_patient(request.GET.get("name", "")), safe=False)
+
+
+async def service_search_patients(request: HttpRequest) -> JsonResponse:
+    return JsonResponse(await patient_service.search_patients(request.GET.get("q", "")), safe=False)
+
+
+async def service_patient_detail(request: HttpRequest, patient_id: str) -> JsonResponse:
+    result = await patient_service.get_patient_detail(patient_id)
+    if result is None:
+        return JsonResponse({"detail": "Patient not found"}, status=404)
+    return JsonResponse(result)
+
+
+async def service_patient_summary(request: HttpRequest, patient_id: str) -> JsonResponse:
+    result = await patient_service.get_patient_summary(patient_id)
+    if result is None:
+        return JsonResponse({"detail": "Patient not found"}, status=404)
+    return JsonResponse(result)
+
+
+async def service_transfer(request: HttpRequest) -> JsonResponse:
+    if request.method != "POST":
+        return JsonResponse({"detail": "Method not allowed"}, status=405)
+    amount = float(request.GET.get("amount", "10000"))
+    return JsonResponse(await patient_service.do_transfer(amount))

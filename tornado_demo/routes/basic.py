@@ -21,6 +21,7 @@ from sapl_tornado.dependencies import get_pdp_client
 
 from auth import get_current_user, get_optional_user
 from models import PATIENTS
+from services import patient_service
 
 log = structlog.get_logger()
 
@@ -108,10 +109,64 @@ async def _do_transfer(amount: float = 10000.0, recipient: str = "default-accoun
     return {"transferred": amount, "recipient": recipient, "status": "completed"}
 
 
+# Service-layer handlers: enforcement is on the PatientService methods, not here.
+
+
+class ServicePatientsHandler(tornado.web.RequestHandler):
+    async def get(self):
+        self.set_header("Content-Type", "application/json; charset=UTF-8")
+        self.write(json.dumps(await patient_service.list_patients()))
+
+
+class ServiceFindPatientHandler(tornado.web.RequestHandler):
+    async def get(self):
+        result = await patient_service.find_patient(self.get_argument("name", ""))
+        self.set_header("Content-Type", "application/json; charset=UTF-8")
+        self.write(json.dumps(result))
+
+
+class ServiceSearchPatientsHandler(tornado.web.RequestHandler):
+    async def get(self):
+        result = await patient_service.search_patients(self.get_argument("q", ""))
+        self.set_header("Content-Type", "application/json; charset=UTF-8")
+        self.write(json.dumps(result))
+
+
+class ServicePatientDetailHandler(tornado.web.RequestHandler):
+    async def get(self, patient_id):
+        result = await patient_service.get_patient_detail(patient_id)
+        if result is None:
+            raise tornado.web.HTTPError(404, reason="Patient not found")
+        self.set_header("Content-Type", "application/json; charset=UTF-8")
+        self.write(json.dumps(result))
+
+
+class ServicePatientSummaryHandler(tornado.web.RequestHandler):
+    async def get(self, patient_id):
+        result = await patient_service.get_patient_summary(patient_id)
+        if result is None:
+            raise tornado.web.HTTPError(404, reason="Patient not found")
+        self.set_header("Content-Type", "application/json; charset=UTF-8")
+        self.write(json.dumps(result))
+
+
+class ServiceTransferHandler(tornado.web.RequestHandler):
+    async def post(self):
+        amount = float(self.get_argument("amount", "10000.0"))
+        self.set_header("Content-Type", "application/json; charset=UTF-8")
+        self.write(json.dumps(await patient_service.do_transfer(amount)))
+
+
 BasicHandlers = [
     (r"/api/hello", HelloHandler),
     (r"/api/patient/(?P<patient_id>[^/]+)", PatientHandler),
     (r"/api/patients", PatientsHandler),
     (r"/api/exportData/(?P<pilot_id>[^/]+)/(?P<sequence_id>[^/]+)", ExportDataHandler),
     (r"/api/transfer", TransferHandler),
+    (r"/api/services/patients/find", ServiceFindPatientHandler),
+    (r"/api/services/patients/search", ServiceSearchPatientsHandler),
+    (r"/api/services/patients/(?P<patient_id>[^/]+)/summary", ServicePatientSummaryHandler),
+    (r"/api/services/patients/(?P<patient_id>[^/]+)", ServicePatientDetailHandler),
+    (r"/api/services/patients", ServicePatientsHandler),
+    (r"/api/services/transfer", ServiceTransferHandler),
 ]

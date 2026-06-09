@@ -1,15 +1,11 @@
-"""SSE streaming enforcement endpoints.
+"""Streaming enforcement endpoints.
 
-The three endpoints share resource `heartbeat` and differ only by action and the
-`signal_transitions` flag:
-
-  * till-denied         -> action stream:terminate; DENY terminates with ACCESS_DENIED.
-  * silent-suspending   -> action stream:suspend; SUSPEND drops items silently; PERMIT resumes.
-  * observed-suspending -> action stream:suspend + signal_transitions=True; SUSPEND emits
-                           ACCESS_SUSPENDED, return to Permitting emits ACCESS_GRANTED.
-
-The cycle PERMIT -> (DENY | SUSPEND) -> PERMIT is driven by the single policy
-`streaming-heartbeat-time-based.sapl`, which permits in [0, 20) and [40, 60), denies
+Controller-layer endpoints carry `@stream_enforce` on the handler and render the
+enforced stream with `@sse_rendered`. The service-layer endpoint under
+`/api/services` delegates to a `@stream_enforce`-decorated service method and
+renders it with `sse_response`. The three controller variants share resource
+`heartbeat` and differ by action and flags; the policy
+`streaming-heartbeat-time-based.sapl` permits in [0, 20) and [40, 60), denies
 `stream:terminate` in [20, 40), and suspends `stream:suspend` in [20, 40).
 """
 
@@ -20,14 +16,14 @@ from collections.abc import AsyncIterator
 from datetime import datetime, timezone
 from typing import Any
 
-import structlog
 from fastapi import APIRouter, Request
 
 from sapl_fastapi.decorators import stream_enforce
 
-log = structlog.get_logger()
+from app.services import patient_service
+from app.sse import sse_rendered, sse_response
 
-router = APIRouter(prefix="/api/streaming", tags=["streaming"])
+router = APIRouter(tags=["streaming"])
 
 
 async def _heartbeat_source() -> AsyncIterator[dict[str, Any]]:
@@ -39,31 +35,31 @@ async def _heartbeat_source() -> AsyncIterator[dict[str, Any]]:
         await asyncio.sleep(2)
 
 
-@router.get("/heartbeat/till-denied")
+@router.get("/api/streaming/heartbeat/till-denied")
+@sse_rendered
 @stream_enforce(action="stream:terminate", resource="heartbeat")
 async def heartbeat_till_denied(request: Request):
-    """DENY terminates the stream with an `ACCESS_DENIED` SSE frame."""
+    """DENY terminates the stream with an `ACCESS_DENIED` frame."""
     return _heartbeat_source()
 
 
-@router.get("/heartbeat/silent-suspending")
-@stream_enforce(
-    action="stream:suspend",
-    resource="heartbeat",
-    pause_rap_during_suspend=True,
-)
+@router.get("/api/streaming/heartbeat/silent-suspending")
+@sse_rendered
+@stream_enforce(action="stream:suspend", resource="heartbeat", pause_rap_during_suspend=True)
 async def heartbeat_silent_suspending(request: Request):
-    """SUSPEND drops items silently; PERMIT resumes the stream. No boundary frames."""
+    """SUSPEND drops items silently; PERMIT resumes. No boundary frames."""
     return _heartbeat_source()
 
 
-@router.get("/heartbeat/observed-suspending")
-@stream_enforce(
-    action="stream:suspend",
-    resource="heartbeat",
-    signal_transitions=True,
-    pause_rap_during_suspend=True,
-)
+@router.get("/api/streaming/heartbeat/observed-suspending")
+@sse_rendered
+@stream_enforce(action="stream:suspend", resource="heartbeat", signal_transitions=True, pause_rap_during_suspend=True)
 async def heartbeat_observed_suspending(request: Request):
-    """Boundary signals: ACCESS_SUSPENDED on enter Suspended, ACCESS_GRANTED on resume."""
+    """Boundary frames: ACCESS_SUSPENDED on enter Suspended, ACCESS_GRANTED on resume."""
     return _heartbeat_source()
+
+
+@router.get("/api/services/streaming/heartbeat/observed-suspending")
+async def service_heartbeat_observed_suspending():
+    """Service-layer streaming: enforcement is on the PatientService method."""
+    return sse_response(patient_service.stream_heartbeat())

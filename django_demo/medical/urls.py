@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from django.urls import path
 
-from medical import views, views_services
+from medical import views
 
 urlpatterns = [
     # Root
@@ -43,11 +43,12 @@ urlpatterns = [
     path("streaming/heartbeat/silent-suspending", views.heartbeat_silent_suspending),
     path("streaming/heartbeat/observed-suspending", views.heartbeat_observed_suspending),
 
-    # Service-layer enforcement
-    path("services/patients", views_services.list_patients),
-    path("services/patients/find", views_services.find_patient),
-    path("services/patients/search", views_services.search_patients),
-    path("services/patients/<str:patient_id>", views_services.get_patient_detail),
-    path("services/patients/<str:patient_id>/summary", views_services.get_patient_summary),
-    path("services/transfer", views_services.transfer),
+    # Service-layer enforcement (enforcement on the PatientService methods)
+    path("services/patients", views.service_list_patients),
+    path("services/patients/find", views.service_find_patient),
+    path("services/patients/search", views.service_search_patients),
+    path("services/patients/<str:patient_id>", views.service_patient_detail),
+    path("services/patients/<str:patient_id>/summary", views.service_patient_summary),
+    path("services/transfer", views.service_transfer),
+    path("services/streaming/heartbeat/observed-suspending", views.service_heartbeat_observed_suspending),
 ]

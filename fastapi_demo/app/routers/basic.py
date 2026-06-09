@@ -20,6 +20,7 @@ from sapl_fastapi.decorators import pre_enforce, post_enforce
 
 from app.auth import get_current_user, get_optional_user
 from app.models import PATIENTS
+from app.services import patient_service
 
 log = structlog.get_logger()
 
@@ -123,3 +124,42 @@ async def transfer(
     above the cap.
     """
     return {"transferred": amount, "recipient": recipient, "status": "completed"}
+
+
+# Service-layer endpoints: enforcement is on the PatientService methods, not here.
+
+
+@router.get("/services/patients")
+async def service_list_patients() -> Any:
+    return await patient_service.list_patients()
+
+
+@router.get("/services/patients/find")
+async def service_find_patient(name: str = "") -> Any:
+    return await patient_service.find_patient(name)
+
+
+@router.get("/services/patients/search")
+async def service_search_patients(q: str = "") -> Any:
+    return await patient_service.search_patients(q)
+
+
+@router.get("/services/patients/{patient_id}")
+async def service_patient_detail(patient_id: str) -> Any:
+    result = await patient_service.get_patient_detail(patient_id)
+    if result is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Patient not found")
+    return result
+
+
+@router.get("/services/patients/{patient_id}/summary")
+async def service_patient_summary(patient_id: str) -> Any:
+    result = await patient_service.get_patient_summary(patient_id)
+    if result is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Patient not found")
+    return result
+
+
+@router.post("/services/transfer")
+async def service_transfer(amount: float = 10000.0) -> Any:
+    return await patient_service.do_transfer(amount)

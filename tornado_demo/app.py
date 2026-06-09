@@ -15,7 +15,6 @@ from sapl_tornado.dependencies import configure_sapl
 from handlers import register_all_handlers
 from routes.basic import BasicHandlers
 from routes.constraints import ConstraintHandlers
-from routes.services import ServiceHandlers
 from routes.streaming import StreamingHandlers
 
 log = structlog.get_logger()
@@ -34,7 +33,6 @@ def make_app() -> tornado.web.Application:
         + BasicHandlers
         + ConstraintHandlers
         + StreamingHandlers
-        + ServiceHandlers
     )
 
 

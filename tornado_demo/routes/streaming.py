@@ -1,12 +1,11 @@
-"""SSE streaming enforcement endpoints (Tornado).
+"""Streaming enforcement endpoints (Tornado).
 
-The three endpoints share resource `heartbeat` and differ only by action and the
-`signal_transitions` flag:
-
-  * till-denied         -> action stream:terminate; DENY terminates with ACCESS_DENIED.
-  * silent-suspending   -> action stream:suspend; SUSPEND drops items silently; PERMIT resumes.
-  * observed-suspending -> action stream:suspend + signal_transitions=True; SUSPEND emits
-                           ACCESS_SUSPENDED, return to Permitting emits ACCESS_GRANTED.
+Controller-layer handlers carry `@stream_enforce` on an enforced source method and
+render the enforced stream with `sse_write` in `get`. The service-layer handler
+delegates to a `@stream_enforce`-decorated service method. The three controller
+variants share resource `heartbeat`; the policy `streaming-heartbeat-time-based.sapl`
+permits in [0, 20) and [40, 60), denies `stream:terminate` in [20, 40), and suspends
+`stream:suspend` in [20, 40).
 """
 
 from __future__ import annotations
@@ -16,12 +15,12 @@ from collections.abc import AsyncIterator
 from datetime import datetime, timezone
 from typing import Any
 
-import structlog
 import tornado.web
 
 from sapl_tornado.decorators import stream_enforce
 
-log = structlog.get_logger()
+from services import patient_service
+from sse import sse_write
 
 
 async def _heartbeat_source() -> AsyncIterator[dict[str, Any]]:
@@ -35,33 +34,39 @@ async def _heartbeat_source() -> AsyncIterator[dict[str, Any]]:
 
 class HeartbeatTillDeniedHandler(tornado.web.RequestHandler):
     @stream_enforce(action="stream:terminate", resource="heartbeat")
-    async def get(self):
+    async def _enforced(self):
         return _heartbeat_source()
+
+    async def get(self):
+        await sse_write(self, self._enforced())
 
 
 class HeartbeatSilentSuspendingHandler(tornado.web.RequestHandler):
-    @stream_enforce(
-        action="stream:suspend",
-        resource="heartbeat",
-        pause_rap_during_suspend=True,
-    )
-    async def get(self):
+    @stream_enforce(action="stream:suspend", resource="heartbeat", pause_rap_during_suspend=True)
+    async def _enforced(self):
         return _heartbeat_source()
+
+    async def get(self):
+        await sse_write(self, self._enforced())
 
 
 class HeartbeatObservedSuspendingHandler(tornado.web.RequestHandler):
-    @stream_enforce(
-        action="stream:suspend",
-        resource="heartbeat",
-        signal_transitions=True,
-        pause_rap_during_suspend=True,
-    )
-    async def get(self):
+    @stream_enforce(action="stream:suspend", resource="heartbeat", signal_transitions=True, pause_rap_during_suspend=True)
+    async def _enforced(self):
         return _heartbeat_source()
+
+    async def get(self):
+        await sse_write(self, self._enforced())
+
+
+class ServiceHeartbeatObservedSuspendingHandler(tornado.web.RequestHandler):
+    async def get(self):
+        await sse_write(self, patient_service.stream_heartbeat())
 
 
 StreamingHandlers = [
     (r"/api/streaming/heartbeat/till-denied", HeartbeatTillDeniedHandler),
     (r"/api/streaming/heartbeat/silent-suspending", HeartbeatSilentSuspendingHandler),
     (r"/api/streaming/heartbeat/observed-suspending", HeartbeatObservedSuspendingHandler),
+    (r"/api/services/streaming/heartbeat/observed-suspending", ServiceHeartbeatObservedSuspendingHandler),
 ]

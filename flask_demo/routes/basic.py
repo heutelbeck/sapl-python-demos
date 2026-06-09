@@ -21,6 +21,7 @@ from sapl_flask.extension import get_sapl_extension
 
 from auth import get_current_user, get_optional_user
 from models import PATIENTS
+from services import patient_service
 
 log = structlog.get_logger()
 
@@ -114,3 +115,43 @@ def _do_transfer(amount: float = 10000.0, recipient: str = "default-account"):
     The CapTransferHandler caps amount as an INPUT mapper over (args, kwargs).
     """
     return {"transferred": amount, "recipient": recipient, "status": "completed"}
+
+
+# Service-layer endpoints: enforcement is on the PatientService methods, not here.
+
+
+@basic_bp.route("/services/patients")
+def service_list_patients():
+    return jsonify(patient_service.list_patients())
+
+
+@basic_bp.route("/services/patients/find")
+def service_find_patient():
+    return jsonify(patient_service.find_patient(request.args.get("name", "")))
+
+
+@basic_bp.route("/services/patients/search")
+def service_search_patients():
+    return jsonify(patient_service.search_patients(request.args.get("q", "")))
+
+
+@basic_bp.route("/services/patients/<patient_id>")
+def service_patient_detail(patient_id: str):
+    result = patient_service.get_patient_detail(patient_id)
+    if result is None:
+        abort(404, description="Patient not found")
+    return jsonify(result)
+
+
+@basic_bp.route("/services/patients/<patient_id>/summary")
+def service_patient_summary(patient_id: str):
+    result = patient_service.get_patient_summary(patient_id)
+    if result is None:
+        abort(404, description="Patient not found")
+    return jsonify(result)
+
+
+@basic_bp.route("/services/transfer", methods=["POST"])
+def service_transfer():
+    amount = request.args.get("amount", 10000.0, type=float)
+    return jsonify(patient_service.do_transfer(amount))

@@ -10,11 +10,24 @@ Uses ``@pre_enforce`` / ``@post_enforce`` decorators from sapl_django.
 
 from __future__ import annotations
 
+import asyncio
+from collections.abc import AsyncIterator
+from datetime import datetime, timezone
 from typing import Any
 
-from sapl_django.decorators import post_enforce, pre_enforce
+from sapl_django.decorators import post_enforce, pre_enforce, stream_enforce
 
 from medical.models import PATIENTS
+
+
+@stream_enforce(action="stream:suspend", resource="heartbeat", signal_transitions=True, pause_rap_during_suspend=True)
+async def stream_heartbeat() -> AsyncIterator[dict[str, Any]]:
+    """Service-layer streaming: heartbeat emitted every 2 seconds, enforced here."""
+    seq = 0
+    while True:
+        yield {"seq": seq, "ts": datetime.now(timezone.utc).isoformat()}
+        seq += 1
+        await asyncio.sleep(2)
 
 
 @pre_enforce(action="listPatients", resource="patients")
