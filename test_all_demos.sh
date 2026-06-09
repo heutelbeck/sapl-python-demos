@@ -1,22 +1,29 @@
 #!/usr/bin/env bash
-# Run test_demo.sh against all 6 SAPL demos and collect comparative results.
+# Run test_demo.sh against all SAPL demos and collect comparative results.
 #
 # Prerequisites:
 #   - Docker running (Keycloak + SAPL PDP shared across demos)
 #   - Python venv at /tmp/sapl-venv with all deps installed
 #   - NestJS demo built (npm run build in sapl-nestjs-demo)
 #   - .NET 9 SDK available (via nix develop or directly)
+#   - PHP 8.3+ and Composer, with sapl-php-demos dependencies installed
+#     (composer install) and sapl-php available via the path repository
 #
 # Usage:
 #   ./test_all_demos.sh
 
-set -euo pipefail
+# Resilient run: a failed setup step for one demo must not abort the whole
+# suite. Test-assertion failures already do not abort (test_demo.sh runs in a
+# pipe). Each demo records its own result file; missing files surface as
+# "no results" in the comparative summary.
+set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PYTHON_DIR="${PYTHON_DIR:-/home/dominic/git/sapl-python-demos}"
 NESTJS_DIR="${NESTJS_DIR:-/home/dominic/git/sapl-nestjs-demo}"
 DOTNET_DIR="${DOTNET_DIR:-/home/dominic/git/sapl-dotnet-demos}"
 SPRING_DIR="${SPRING_DIR:-/home/dominic/git/sapl-demos/spring-demo}"
+PHP_DIR="${PHP_DIR:-/home/dominic/git/sapl-php-demos}"
 VENV="${VENV:-/tmp/sapl-venv/bin}"
 PORT="${PORT:-3000}"
 RESULTS_DIR="${RESULTS_DIR:-/tmp/sapl-test-results}"
@@ -63,7 +70,7 @@ printf "${BOLD}  SAPL Demo Comparative Test Suite${NC}\n"
 printf "${BOLD}========================================${NC}\n\n"
 
 # ---- Flask ----
-printf "${BOLD}[1/6] Flask Demo${NC}\n"
+printf "${BOLD}[1/9] Flask Demo${NC}\n"
 kill_port
 cd "$PYTHON_DIR/flask_demo" && "$VENV/python" app.py > /tmp/flask_demo.log 2>&1 &
 wait_for_server "http://localhost:$PORT/api/hello"
@@ -71,28 +78,28 @@ cd "$SCRIPT_DIR" && bash test_demo.sh "http://localhost:$PORT" --jwt 2>&1 | tee 
 kill_port
 
 # ---- FastAPI ----
-printf "\n${BOLD}[2/6] FastAPI Demo${NC}\n"
+printf "\n${BOLD}[2/9] FastAPI Demo${NC}\n"
 cd "$PYTHON_DIR/fastapi_demo" && "$VENV/python" -m app.main > /tmp/fastapi_demo.log 2>&1 &
 wait_for_server "http://localhost:$PORT/api/hello"
 cd "$SCRIPT_DIR" && bash test_demo.sh "http://localhost:$PORT" --jwt 2>&1 | tee "$RESULTS_DIR/fastapi.txt"
 kill_port
 
 # ---- Django ----
-printf "\n${BOLD}[3/6] Django Demo${NC}\n"
+printf "\n${BOLD}[3/9] Django Demo${NC}\n"
 cd "$PYTHON_DIR/django_demo" && "$VENV/uvicorn" demo_project.asgi:application --host 0.0.0.0 --port "$PORT" > /tmp/django_demo.log 2>&1 &
 wait_for_server "http://localhost:$PORT/api/hello"
 cd "$SCRIPT_DIR" && bash test_demo.sh "http://localhost:$PORT" --jwt 2>&1 | tee "$RESULTS_DIR/django.txt"
 kill_port
 
 # ---- Tornado ----
-printf "\n${BOLD}[4/6] Tornado Demo${NC}\n"
+printf "\n${BOLD}[4/9] Tornado Demo${NC}\n"
 cd "$PYTHON_DIR/tornado_demo" && "$VENV/python" app.py > /tmp/tornado_demo.log 2>&1 &
 wait_for_server "http://localhost:$PORT/api/hello"
 cd "$SCRIPT_DIR" && bash test_demo.sh "http://localhost:$PORT" --jwt 2>&1 | tee "$RESULTS_DIR/tornado.txt"
 kill_port
 
 # ---- NestJS (HTTP transport) ----
-printf "\n${BOLD}[5/8] NestJS Demo (HTTP)${NC}\n"
+printf "\n${BOLD}[5/9] NestJS Demo (HTTP)${NC}\n"
 # NestJS needs its own PDP with its policies (missing permit-read-patients, permit-transfer)
 # but the shared PDP has those policies which is fine -- extra policies don't hurt.
 cd "$NESTJS_DIR" && SAPL_TRANSPORT=http node dist/main > /tmp/nestjs_demo.log 2>&1 &
@@ -101,7 +108,7 @@ cd "$SCRIPT_DIR" && bash test_demo.sh "http://localhost:$PORT" --jwt 2>&1 | tee 
 kill_port
 
 # ---- NestJS (RSocket transport) ----
-printf "\n${BOLD}[6/8] NestJS Demo (RSocket)${NC}\n"
+printf "\n${BOLD}[6/9] NestJS Demo (RSocket)${NC}\n"
 # Same demo, RSocket transport against the shared SAPL Node on its RSocket port.
 cd "$NESTJS_DIR" && SAPL_TRANSPORT=rsocket SAPL_PDP_RSOCKET_HOST=localhost SAPL_PDP_RSOCKET_PORT=7000 node dist/main > /tmp/nestjs_rsocket_demo.log 2>&1 &
 wait_for_server "http://localhost:$PORT/api/hello"
@@ -109,7 +116,7 @@ cd "$SCRIPT_DIR" && bash test_demo.sh "http://localhost:$PORT" --jwt 2>&1 | tee 
 kill_port
 
 # ---- .NET ----
-printf "\n${BOLD}[7/8] .NET Demo${NC}\n"
+printf "\n${BOLD}[7/9] .NET Demo${NC}\n"
 DOTNET_CMD="dotnet"
 if ! command -v dotnet &>/dev/null; then
     DOTNET_CMD="nix develop /home/dominic/.dotfiles#dotnet --command dotnet"
@@ -121,7 +128,7 @@ cd "$SCRIPT_DIR" && bash test_demo.sh "http://localhost:$PORT" --jwt 2>&1 | tee 
 kill_port
 
 # ---- Spring (the reference implementation) ----
-printf "\n${BOLD}[8/8] Spring Demo${NC}\n"
+printf "\n${BOLD}[8/9] Spring Demo${NC}\n"
 # Maven Spring Boot run binds to the configured server.port (default 8080 in the
 # spring-demo profile). Override to PORT so the same test_demo.sh assertions apply.
 cd "$SPRING_DIR" && SERVER_PORT="$PORT" SAPL_PDP_URL="http://localhost:8443" \
@@ -131,6 +138,16 @@ cd "$SCRIPT_DIR" && bash test_demo.sh "http://localhost:$PORT" --jwt 2>&1 | tee 
 # Spring boot:run via mvn does not expose a clean shutdown hook; use kill_port.
 kill_port
 
+# ---- PHP (Symfony) ----
+printf "\n${BOLD}[9/9] PHP Demo (Symfony)${NC}\n"
+# Symfony app served by the PHP built-in server with the front controller as
+# router. Consumes the shared PDP over HTTP and the shared Keycloak for --jwt.
+cd "$PHP_DIR" && SAPL_PDP_BASE_URL="http://localhost:8443" APP_ENV=dev \
+    php -S 0.0.0.0:"$PORT" -t public public/index.php > /tmp/php_demo.log 2>&1 &
+wait_for_server "http://localhost:$PORT/api/hello"
+cd "$SCRIPT_DIR" && bash test_demo.sh "http://localhost:$PORT" --jwt 2>&1 | tee "$RESULTS_DIR/php.txt"
+kill_port
+
 # ---- Comparative Summary ----
 printf "\n${BOLD}========================================${NC}\n"
 printf "${BOLD}  Comparative Summary${NC}\n"
@@ -138,7 +155,7 @@ printf "${BOLD}========================================${NC}\n\n"
 
 printf "%-12s %s\n" "Demo" "Result"
 printf "%-12s %s\n" "----" "------"
-for demo in flask fastapi django tornado nestjs-http nestjs-rsocket dotnet spring; do
+for demo in flask fastapi django tornado nestjs-http nestjs-rsocket dotnet spring php; do
     result=$(grep "^Total:" "$RESULTS_DIR/${demo}.txt" 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' || echo "no results")
     printf "%-12s %s\n" "$demo" "$result"
 done
