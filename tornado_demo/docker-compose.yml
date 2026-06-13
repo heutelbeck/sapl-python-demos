@@ -11,7 +11,7 @@ services:
       - ./keycloak:/opt/keycloak/data/import:ro
 
   sapl-pdp:
-    image: ghcr.io/heutelbeck/sapl-node:4.0.0-SNAPSHOT
+    image: ghcr.io/heutelbeck/sapl-node:4.1.0-SNAPSHOT
     ports:
       - "8443:8443"
     volumes:
