@@ -5,8 +5,8 @@ description = "FastMCP demo application for SAPL Python PEP"
 requires-python = ">=3.12"
 dependencies = [
     "fastmcp>=3.1.0",
-    "sapl-fastmcp>=4.0.1",
-    "sapl-base>=4.0.1",
+    "sapl-fastmcp>=4.1.0",
+    "sapl-base>=4.1.0",
     "mcp>=1.0",
     "httpx>=0.27",
     "pydantic>=2.0",
