@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    name: End-to-end (${{ matrix.demo }})
+    # Brings up a stack and runs the scenario suite per framework, so it runs on
+    # main and on demand rather than on every PR.
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - demo: flask_demo
+            start: python app.py
+          - demo: fastapi_demo
+            start: python -m app.main
+          - demo: django_demo
+            start: uvicorn demo_project.asgi:application --host 0.0.0.0 --port 3000
+          - demo: tornado_demo
+            start: python app.py
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: '3.12'
+
+      - name: Start SAPL Node and Keycloak
+        working-directory: ${{ matrix.demo }}
+        run: docker compose up -d
+
+      - name: Wait for the Keycloak realm and the PDP
+        run: |
+          echo "Waiting for the Keycloak 'demo' realm..."
+          for i in $(seq 1 90); do
+            curl -sf http://localhost:8080/realms/demo/.well-known/openid-configuration >/dev/null 2>&1 && { echo "realm ready"; break; }
+            sleep 2
+          done
+          echo "Waiting for the PDP..."
+          for i in $(seq 1 40); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://localhost:8443/api/pdp/decide-once 2>/dev/null || echo 000)
+            [ "$code" != "000" ] && { echo "PDP ready (http $code)"; break; }
+            sleep 2
+          done
+
+      - name: Install the demo (pulls the published sapl-* package)
+        run: pip install ./${{ matrix.demo }}
+
+      - name: Run the demo and the scenario suite (with JWT)
+        working-directory: ${{ matrix.demo }}
+        env:
+          PORT: "3000"
+        run: |
+          nohup ${{ matrix.start }} > "$RUNNER_TEMP/demo.log" 2>&1 &
+          echo "Waiting for the demo on :3000..."
+          for i in $(seq 1 45); do
+            curl -sf http://localhost:3000/api/hello >/dev/null 2>&1 && { echo "demo ready"; break; }
+            sleep 2
+          done
+          bash ../test_demo.sh http://localhost:3000 --jwt
+
+      - name: Demo log on failure
+        if: failure()
+        run: cat "$RUNNER_TEMP/demo.log" || true
